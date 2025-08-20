@@ -247,6 +247,27 @@
             background: #ff3838;
         }
 
+        /* Input Tabs */
+        .input-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .input-tab {
+            padding: 8px 16px;
+            background: #f0f0f0;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .input-tab.active {
+            background: #667eea;
+            color: white;
+        }
+
         /* File Upload */
         .file-upload {
             border: 2px dashed #667eea;
@@ -270,6 +291,33 @@
 
         input[type="file"] {
             display: none;
+        }
+
+        /* Text Input Area */
+        .text-input-area {
+            display: none;
+        }
+
+        .text-input-area.active {
+            display: block;
+        }
+
+        .text-paste-input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #667eea;
+            border-radius: 10px;
+            font-size: 0.95em;
+            resize: vertical;
+            min-height: 200px;
+            font-family: inherit;
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        .text-paste-input:focus {
+            outline: none;
+            border-color: #764ba2;
+            background: white;
         }
 
         /* Text Generation */
@@ -300,9 +348,11 @@
             cursor: pointer;
             transition: all 0.3s ease;
             margin-top: 20px;
+            position: relative;
+            overflow: hidden;
         }
 
-        .generate-btn:hover {
+        .generate-btn:hover:not(:disabled) {
             transform: translateY(-2px);
             box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
         }
@@ -312,6 +362,23 @@
             cursor: not-allowed;
         }
 
+        .generate-btn.loading::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            animation: loading-sweep 1.5s infinite;
+        }
+
+        @keyframes loading-sweep {
+            to {
+                left: 100%;
+            }
+        }
+
         /* Results */
         .result {
             margin-top: 20px;
@@ -319,6 +386,18 @@
             background: #f8f9fa;
             border-radius: 10px;
             border-left: 4px solid #667eea;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         .result-content {
@@ -434,10 +513,12 @@
             justify-content: center;
             align-items: center;
             z-index: 1000;
+            backdrop-filter: blur(5px);
         }
 
         .modal.show {
             display: flex;
+            animation: fadeIn 0.3s ease;
         }
 
         .modal-content {
@@ -448,6 +529,19 @@
             width: 90%;
             max-height: 80vh;
             overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
         }
 
         .modal-header {
@@ -455,6 +549,8 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #e0e0e0;
         }
 
         .modal-title {
@@ -468,16 +564,45 @@
             font-size: 1.5em;
             cursor: pointer;
             color: #999;
+            padding: 5px;
+            transition: all 0.3s ease;
         }
 
         .close-modal:hover {
             color: #333;
+            transform: rotate(90deg);
         }
 
         /* Full Content Modal */
         .full-content-modal {
             white-space: pre-wrap;
-            line-height: 1.6;
+            line-height: 1.8;
+            color: #333;
+        }
+
+        .content-section {
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .content-section:last-of-type {
+            margin-bottom: 0;
+        }
+
+        .content-label {
+            font-weight: 600;
+            color: #667eea;
+            margin-bottom: 15px;
+            display: block;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .content-text {
+            line-height: 1.8;
             color: #333;
         }
 
@@ -502,6 +627,38 @@
             100% { transform: rotate(360deg); }
         }
 
+        /* Loading Overlay */
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.9);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        .loading-overlay.show {
+            display: flex;
+        }
+
+        .loading-message {
+            margin-top: 20px;
+            color: #667eea;
+            font-size: 1.1em;
+            font-weight: 500;
+        }
+
+        .loading-submessage {
+            margin-top: 10px;
+            color: #999;
+            font-size: 0.9em;
+        }
+
         /* No data message */
         .no-data {
             text-align: center;
@@ -522,6 +679,22 @@
             .main-content {
                 order: 1;
             }
+        }
+
+        /* Smooth animations for new styles */
+        @keyframes slideInLeft {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .style-item.new {
+            animation: slideInLeft 0.5s ease forwards;
         }
     </style>
 </head>
@@ -616,22 +789,35 @@
             </div>
             <div class="form-group">
                 <label>Style Name:</label>
-                <input type="text" id="styleName" placeholder="e.g., Professional Emails" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px;">
+                <input type="text" id="styleName" placeholder="e.g., Professional Emails" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px; margin-bottom: 15px;">
             </div>
             <div class="form-group">
-                <label>Upload Writing Samples:</label>
-                <div class="file-upload" id="modalFileUpload">
-                    <input type="file" id="modalFileInput" multiple accept=".txt,.doc,.docx,.pdf">
-                    <svg width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="#667eea" stroke-width="2">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                        <polyline points="7 10 12 15 17 10"></polyline>
-                        <line x1="12" y1="15" x2="12" y2="3"></line>
-                    </svg>
-                    <p style="margin-top: 10px; color: #666;">Click to upload or drag and drop</p>
+                <label>Add Writing Samples:</label>
+                <div class="input-tabs">
+                    <button class="input-tab active" onclick="switchInputMethod('upload', 'modal')">Upload Files</button>
+                    <button class="input-tab" onclick="switchInputMethod('paste', 'modal')">Paste Text</button>
                 </div>
-                <div class="file-list" id="modalFileList"></div>
+                
+                <div id="modalUploadArea" class="upload-area">
+                    <div class="file-upload" id="modalFileUpload">
+                        <input type="file" id="modalFileInput" multiple accept=".txt,.doc,.docx,.pdf">
+                        <svg width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="#667eea" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7 10 12 15 17 10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                        </svg>
+                        <p style="margin-top: 10px; color: #666;">Click to upload or drag and drop</p>
+                        <p style="font-size: 0.85em; color: #999;">Supported: TXT, DOC, DOCX, PDF</p>
+                    </div>
+                    <div class="file-list" id="modalFileList"></div>
+                </div>
+                
+                <div id="modalPasteArea" class="text-input-area">
+                    <textarea class="text-paste-input" id="modalTextInput" placeholder="Paste your writing samples here. The more text you provide, the better the style analysis will be."></textarea>
+                    <p style="font-size: 0.85em; color: #666; margin-top: 10px;">Tip: Include at least 500 words for best results</p>
+                </div>
             </div>
-            <button class="generate-btn" onclick="createNewStyle()">Analyze & Create Style</button>
+            <button class="generate-btn" id="createStyleBtn" onclick="createNewStyle()">Analyze & Create Style</button>
         </div>
     </div>
 
@@ -643,18 +829,29 @@
                 <button class="close-modal" onclick="closeModal('addDocumentsModal')">×</button>
             </div>
             <div class="form-group">
-                <div class="file-upload" id="addDocsFileUpload">
-                    <input type="file" id="addDocsFileInput" multiple accept=".txt,.doc,.docx,.pdf">
-                    <svg width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="#667eea" stroke-width="2">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                        <polyline points="7 10 12 15 17 10"></polyline>
-                        <line x1="12" y1="15" x2="12" y2="3"></line>
-                    </svg>
-                    <p style="margin-top: 10px; color: #666;">Click to upload or drag and drop</p>
+                <div class="input-tabs">
+                    <button class="input-tab active" onclick="switchInputMethod('upload', 'addDocs')">Upload Files</button>
+                    <button class="input-tab" onclick="switchInputMethod('paste', 'addDocs')">Paste Text</button>
                 </div>
-                <div class="file-list" id="addDocsFileList"></div>
+                
+                <div id="addDocsUploadArea" class="upload-area">
+                    <div class="file-upload" id="addDocsFileUpload">
+                        <input type="file" id="addDocsFileInput" multiple accept=".txt,.doc,.docx,.pdf">
+                        <svg width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="#667eea" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7 10 12 15 17 10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                        </svg>
+                        <p style="margin-top: 10px; color: #666;">Click to upload or drag and drop</p>
+                    </div>
+                    <div class="file-list" id="addDocsFileList"></div>
+                </div>
+                
+                <div id="addDocsPasteArea" class="text-input-area">
+                    <textarea class="text-paste-input" id="addDocsTextInput" placeholder="Paste additional writing samples here to improve the style analysis."></textarea>
+                </div>
             </div>
-            <button class="generate-btn" onclick="addDocumentsToStyle()">Add Documents</button>
+            <button class="generate-btn" id="addDocsBtn" onclick="addDocumentsToStyle()">Add Documents</button>
         </div>
     </div>
 
@@ -666,8 +863,15 @@
                 <button class="close-modal" onclick="closeModal('fullContentModal')">×</button>
             </div>
             <div class="full-content-modal" id="fullContentText"></div>
-            <button class="copy-btn" onclick="copyFullContent()" style="margin-top: 20px;">Copy to Clipboard</button>
+            <button class="copy-btn" onclick="copyFullContent()" style="margin-top: 20px; width: 100%;">Copy to Clipboard</button>
         </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner"></div>
+        <div class="loading-message" id="loadingMessage">Processing...</div>
+        <div class="loading-submessage" id="loadingSubmessage"></div>
     </div>
 
     <script>
@@ -678,6 +882,8 @@
         let uploadedFiles = [];
         let addDocsFiles = [];
         let fullContentText = '';
+        let modalTextContent = '';
+        let addDocsTextContent = '';
 
         // Check authentication on load
         window.addEventListener('DOMContentLoaded', async () => {
@@ -736,7 +942,7 @@
             }
         }
 
-        function renderStyles() {
+        function renderStyles(newStyleId = null) {
             const styleList = document.getElementById('styleList');
             styleList.innerHTML = '';
 
@@ -745,11 +951,19 @@
                 return;
             }
 
-            currentStyles.forEach(style => {
+            currentStyles.forEach((style, index) => {
                 const li = document.createElement('li');
                 li.className = 'style-item';
                 if (style.id === selectedStyleId) {
                     li.classList.add('active');
+                }
+                // Add "new" animation class for newly created styles
+                if (style.id === newStyleId || (index === 0 && newStyleId)) {
+                    li.classList.add('new');
+                    // Remove the "new" class after animation completes
+                    setTimeout(() => {
+                        li.classList.remove('new');
+                    }, 500);
                 }
                 li.onclick = () => selectStyle(style.id);
                 
@@ -900,6 +1114,7 @@
             const generateBtn = document.getElementById('generateBtn');
             const originalText = generateBtn.textContent;
             generateBtn.disabled = true;
+            generateBtn.classList.add('loading');
             generateBtn.textContent = 'Generating...';
 
             const token = localStorage.getItem('token');
@@ -919,6 +1134,7 @@
                 if (response.ok) {
                     const result = await response.json();
                     displayResult(result.content);
+                    // Reload history without changing view
                     await loadStyleHistory();
                     await loadProfile();
                 } else {
@@ -930,6 +1146,7 @@
                 alert('Error generating content');
             } finally {
                 generateBtn.disabled = false;
+                generateBtn.classList.remove('loading');
                 generateBtn.textContent = originalText;
             }
         }
@@ -939,7 +1156,7 @@
             container.innerHTML = `
                 <div class="result">
                     <div class="result-content">${content}</div>
-                    <button class="copy-btn" onclick="copyToClipboard(\`${content.replace(/`/g, '\\`')}\`)">Copy to Clipboard</button>
+                    <button class="copy-btn" onclick="copyToClipboard(\`${content.replace(/`/g, '\\`').replace(/'/g, "\\'")}\`)">Copy to Clipboard</button>
                 </div>
             `;
         }
@@ -947,13 +1164,13 @@
         function showFullContent(content, prompt) {
             fullContentText = content;
             document.getElementById('fullContentText').innerHTML = `
-                <div style="margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid #e0e0e0;">
-                    <strong style="color: #666;">Prompt:</strong><br>
-                    <div style="margin-top: 5px; color: #333;">${prompt}</div>
+                <div class="content-section">
+                    <span class="content-label">Prompt:</span>
+                    <div class="content-text">${prompt}</div>
                 </div>
-                <div>
-                    <strong style="color: #666;">Generated Content:</strong><br>
-                    <div style="margin-top: 5px; color: #333;">${content}</div>
+                <div class="content-section">
+                    <span class="content-label">Generated Content:</span>
+                    <div class="content-text">${content}</div>
                 </div>
             `;
             showModal('fullContentModal');
@@ -967,9 +1184,24 @@
             document.getElementById(modalId).classList.remove('show');
         }
 
+        function showLoadingOverlay(message = 'Processing...') {
+            document.getElementById('loadingMessage').textContent = message;
+            document.getElementById('loadingOverlay').classList.add('show');
+        }
+
+        function hideLoadingOverlay() {
+            document.getElementById('loadingOverlay').classList.remove('show');
+        }
+
         function copyToClipboard(text) {
             navigator.clipboard.writeText(text).then(() => {
-                alert('Copied to clipboard!');
+                // Show a nicer feedback
+                const btn = event.target;
+                const originalText = btn.textContent;
+                btn.textContent = '✓ Copied!';
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                }, 2000);
             }).catch(err => {
                 console.error('Failed to copy: ', err);
                 const textArea = document.createElement('textarea');
@@ -996,11 +1228,39 @@
             return date.toLocaleString();
         }
 
+        function switchInputMethod(method, context) {
+            const tabs = event.target.parentElement.querySelectorAll('.input-tab');
+            tabs.forEach(tab => tab.classList.remove('active'));
+            event.target.classList.add('active');
+
+            if (context === 'modal') {
+                if (method === 'upload') {
+                    document.getElementById('modalUploadArea').style.display = 'block';
+                    document.getElementById('modalPasteArea').style.display = 'none';
+                } else {
+                    document.getElementById('modalUploadArea').style.display = 'none';
+                    document.getElementById('modalPasteArea').style.display = 'block';
+                }
+            } else if (context === 'addDocs') {
+                if (method === 'upload') {
+                    document.getElementById('addDocsUploadArea').style.display = 'block';
+                    document.getElementById('addDocsPasteArea').style.display = 'none';
+                } else {
+                    document.getElementById('addDocsUploadArea').style.display = 'none';
+                    document.getElementById('addDocsPasteArea').style.display = 'block';
+                }
+            }
+        }
+
         function showNewStyleModal() {
             document.getElementById('newStyleModal').classList.add('show');
             uploadedFiles = [];
+            modalTextContent = '';
             document.getElementById('modalFileList').innerHTML = '';
             document.getElementById('styleName').value = '';
+            document.getElementById('modalTextInput').value = '';
+            // Reset to upload tab
+            document.querySelector('#newStyleModal .input-tab').click();
         }
 
         function showAddDocumentsModal() {
@@ -1010,7 +1270,11 @@
             }
             document.getElementById('addDocumentsModal').classList.add('show');
             addDocsFiles = [];
+            addDocsTextContent = '';
             document.getElementById('addDocsFileList').innerHTML = '';
+            document.getElementById('addDocsTextInput').value = '';
+            // Reset to upload tab
+            document.querySelector('#addDocumentsModal .input-tab').click();
         }
 
         async function createNewStyle() {
@@ -1020,8 +1284,11 @@
                 return;
             }
 
-            if (uploadedFiles.length === 0) {
-                alert('Please upload at least one file');
+            // Check if user has provided either files or text
+            modalTextContent = document.getElementById('modalTextInput').value.trim();
+            
+            if (uploadedFiles.length === 0 && !modalTextContent) {
+                alert('Please upload files or paste text samples');
                 return;
             }
 
@@ -1029,13 +1296,20 @@
             const formData = new FormData();
             formData.append('styleName', styleName);
             
+            // Add uploaded files
             uploadedFiles.forEach(file => {
                 formData.append('files', file);
             });
+            
+            // Add pasted text as a file if present
+            if (modalTextContent) {
+                const textBlob = new Blob([modalTextContent], { type: 'text/plain' });
+                formData.append('files', textBlob, 'pasted_text.txt');
+            }
 
-            const btn = event.target;
-            btn.disabled = true;
-            btn.textContent = 'Analyzing...';
+            // Close modal and show loading overlay
+            closeModal('newStyleModal');
+            showLoadingOverlay('Analyzing your writing style...', 'This may take a few moments');
 
             try {
                 const response = await fetch('http://localhost:3000/api/styles/analyze', {
@@ -1047,26 +1321,48 @@
                 });
 
                 if (response.ok) {
-                    closeModal('newStyleModal');
-                    await loadStyles();
+                    const result = await response.json();
+                    
+                    updateLoadingMessage('Style created successfully!', 'Loading your new style...');
+                    
+                    // Add the new style to our local array without reloading
+                    const newStyle = result.style;
+                    currentStyles.unshift(newStyle);
+                    
+                    // Render styles without reloading page, highlighting the new one
+                    renderStyles(newStyle.id);
+                    
+                    // Update stats without reloading
                     await loadProfile();
-                    alert('Writing style created successfully!');
+                    
+                    // Automatically select the new style
+                    if (newStyle && newStyle.id) {
+                        // Small delay for visual feedback
+                        setTimeout(() => {
+                            selectStyle(newStyle.id);
+                            hideLoadingOverlay();
+                        }, 800);
+                    } else {
+                        hideLoadingOverlay();
+                    }
                 } else {
+                    hideLoadingOverlay();
                     const error = await response.json();
                     alert(`Error: ${error.message || 'Failed to create style'}`);
                 }
             } catch (error) {
+                hideLoadingOverlay();
                 console.error('Error creating style:', error);
                 alert('Error creating writing style');
-            } finally {
-                btn.disabled = false;
-                btn.textContent = 'Analyze & Create Style';
             }
         }
 
         async function addDocumentsToStyle() {
-            if (addDocsFiles.length === 0) {
-                alert('Please select files to add');
+            // Check if user has provided either files or text
+            addDocsTextContent = document.getElementById('addDocsTextInput').value.trim();
+            
+            if (addDocsFiles.length === 0 && !addDocsTextContent) {
+                alert('Please upload files or paste text samples');
                 return;
             }
 
@@ -1074,13 +1370,21 @@
             const formData = new FormData();
             formData.append('styleId', selectedStyleId);
             
+            // Add uploaded files
             addDocsFiles.forEach(file => {
                 formData.append('files', file);
             });
+            
+            // Add pasted text as a file if present
+            if (addDocsTextContent) {
+                const textBlob = new Blob([addDocsTextContent], { type: 'text/plain' });
+                formData.append('files', textBlob, 'additional_text.txt');
+            }
 
-            const btn = event.target;
+            const btn = document.getElementById('addDocsBtn');
             btn.disabled = true;
-            btn.textContent = 'Adding...';
+            btn.classList.add('loading');
+            btn.textContent = 'Adding documents...';
 
             try {
                 const response = await fetch('http://localhost:3000/api/styles/analyze', {
@@ -1093,8 +1397,10 @@
 
                 if (response.ok) {
                     closeModal('addDocumentsModal');
+                    // Just reload the documents for this style, don't change view
                     await loadStyleDetails();
-                    alert('Documents added successfully!');
+                    // Update document count in stats
+                    await loadProfile();
                 } else {
                     const error = await response.json();
                     alert(`Error: ${error.message || 'Failed to add documents'}`);
@@ -1104,6 +1410,7 @@
                 alert('Error adding documents');
             } finally {
                 btn.disabled = false;
+                btn.classList.remove('loading');
                 btn.textContent = 'Add Documents';
             }
         }
@@ -1265,6 +1572,30 @@
                     }
                 });
             }
+        }
+
+        // Loading overlay functions
+        function showLoadingOverlay(message, submessage = '') {
+            const overlay = document.getElementById('loadingOverlay');
+            const messageEl = document.getElementById('loadingMessage');
+            const submessageEl = document.getElementById('loadingSubmessage');
+            
+            messageEl.textContent = message;
+            submessageEl.textContent = submessage;
+            overlay.classList.add('show');
+        }
+
+        function updateLoadingMessage(message, submessage = '') {
+            const messageEl = document.getElementById('loadingMessage');
+            const submessageEl = document.getElementById('loadingSubmessage');
+            
+            messageEl.textContent = message;
+            submessageEl.textContent = submessage;
+        }
+
+        function hideLoadingOverlay() {
+            const overlay = document.getElementById('loadingOverlay');
+            overlay.classList.remove('show');
         }
 
         // Close modals when clicking outside
