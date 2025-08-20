@@ -887,6 +887,10 @@
                 loadStyles(),
                 loadProfile()
             ]);
+            
+            // After loading data, check URL and route to appropriate state
+            const urlState = parseURL();
+            routeToState(urlState);
         }
 
         async function loadStyles() {
@@ -945,6 +949,9 @@
         async function selectStyle(styleId) {
             selectedStyleId = styleId;
             selectedStyle = currentStyles.find(s => s.id === styleId);
+            
+            // Update URL to reflect selected style
+            updateURL(`style/${styleId}`);
             
             // Update UI
             renderStyles();
@@ -1590,6 +1597,55 @@
 
         // Track style creation state  
         let isCreatingStyle = false;
+
+        // ===================== URL ROUTING =====================
+        
+        // Update URL without page reload
+        function updateURL(path) {
+            const newURL = window.location.origin + window.location.pathname + (path ? '#' + path : '');
+            history.replaceState({ path }, '', newURL);
+        }
+        
+        // Parse current URL hash to determine state
+        function parseURL() {
+            const hash = window.location.hash.substring(1); // Remove #
+            if (hash.startsWith('style/')) {
+                const styleId = hash.split('/')[1];
+                return { type: 'style', styleId: parseInt(styleId) };
+            }
+            return { type: 'home' };
+        }
+        
+        // Handle browser back/forward buttons
+        window.addEventListener('popstate', (event) => {
+            if (event.state && event.state.path) {
+                routeToState(parseURL());
+            }
+        });
+        
+        // Route to specific state based on URL
+        function routeToState(state) {
+            if (state.type === 'style' && state.styleId) {
+                // Find and select the style
+                const style = currentStyles.find(s => s.id === state.styleId);
+                if (style) {
+                    selectStyle(state.styleId);
+                }
+            } else {
+                // Go to home state
+                goToHomeState();
+            }
+        }
+        
+        // Go to home state (no style selected)
+        function goToHomeState() {
+            selectedStyleId = null;
+            selectedStyle = null;
+            updateURL(''); // Clear URL hash
+            document.getElementById('noStyleSelected').style.display = 'block';
+            document.getElementById('styleContent').style.display = 'none';
+            renderStyles();
+        }
 
         // Close modals when clicking outside
         document.querySelectorAll('.modal').forEach(modal => {

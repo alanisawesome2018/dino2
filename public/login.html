@@ -461,7 +461,7 @@
                     localStorage.setItem('user', JSON.stringify(data.user));
                     
                     // Redirect to dashboard
-                    window.location.href = '/public/dashboard.html';
+                    window.location.href = '/dashboard.html';
                 } else {
                     errorMessage.textContent = data.error || 'Login failed';
                     errorMessage.classList.add('show');
@@ -523,7 +523,7 @@
                     localStorage.setItem('user', JSON.stringify(data.user));
                     
                     setTimeout(() => {
-                        window.location.href = '/public/dashboard.html';
+                        window.location.href = '/dashboard.html';
                     }, 1500);
                 } else {
                     errorMessage.textContent = data.error || 'Registration failed';
