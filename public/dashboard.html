@@ -1287,7 +1287,7 @@
                 formData.append('files', textBlob, 'pasted_text.txt');
             }
 
-            // Set flag to prevent navigation
+            // Set flag to track style creation
             isCreatingStyle = true;
             
             // Update button state instead of full-page overlay
@@ -1588,20 +1588,8 @@
 
 
 
-        // Prevent any unwanted page navigation during style creation
+        // Track style creation state  
         let isCreatingStyle = false;
-        
-        // Override any potential page navigation during style creation
-        const originalPushState = history.pushState;
-        const originalReplaceState = history.replaceState;
-        
-        window.addEventListener('beforeunload', (e) => {
-            if (isCreatingStyle) {
-                e.preventDefault();
-                e.returnValue = '';
-                return 'Style creation in progress...';
-            }
-        });
 
         // Close modals when clicking outside
         document.querySelectorAll('.modal').forEach(modal => {
