@@ -627,37 +627,7 @@
             100% { transform: rotate(360deg); }
         }
 
-        /* Loading Overlay */
-        .loading-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(255, 255, 255, 0.9);
-            z-index: 9999;
-            justify-content: center;
-            align-items: center;
-            flex-direction: column;
-        }
 
-        .loading-overlay.show {
-            display: flex;
-        }
-
-        .loading-message {
-            margin-top: 20px;
-            color: #667eea;
-            font-size: 1.1em;
-            font-weight: 500;
-        }
-
-        .loading-submessage {
-            margin-top: 10px;
-            color: #999;
-            font-size: 0.9em;
-        }
 
         /* No data message */
         .no-data {
@@ -817,7 +787,7 @@
                     <p style="font-size: 0.85em; color: #666; margin-top: 10px;">Tip: Include at least 500 words for best results</p>
                 </div>
             </div>
-            <button class="generate-btn" id="createStyleBtn" onclick="createNewStyle()">Analyze & Create Style</button>
+            <button class="generate-btn" id="createStyleBtn" onclick="createNewStyle(event); return false;">Analyze & Create Style</button>
         </div>
     </div>
 
@@ -867,12 +837,7 @@
         </div>
     </div>
 
-    <!-- Loading Overlay -->
-    <div class="loading-overlay" id="loadingOverlay">
-        <div class="spinner"></div>
-        <div class="loading-message" id="loadingMessage">Processing...</div>
-        <div class="loading-submessage" id="loadingSubmessage"></div>
-    </div>
+
 
     <script>
         let currentUser = null;
@@ -1261,6 +1226,15 @@
             document.getElementById('modalTextInput').value = '';
             // Reset to upload tab
             document.querySelector('#newStyleModal .input-tab').click();
+            
+            // Prevent Enter key from submitting
+            const modal = document.getElementById('newStyleModal');
+            modal.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') {
+                    e.preventDefault();
+                    return false;
+                }
+            });
         }
 
         function showAddDocumentsModal() {
@@ -1277,11 +1251,17 @@
             document.querySelector('#addDocumentsModal .input-tab').click();
         }
 
-        async function createNewStyle() {
+        async function createNewStyle(event) {
+            // Prevent any default form submission behavior
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+
             const styleName = document.getElementById('styleName').value.trim();
             if (!styleName) {
                 alert('Please enter a style name');
-                return;
+                return false;
             }
 
             // Check if user has provided either files or text
@@ -1289,7 +1269,7 @@
             
             if (uploadedFiles.length === 0 && !modalTextContent) {
                 alert('Please upload files or paste text samples');
-                return;
+                return false;
             }
 
             const token = localStorage.getItem('token');
@@ -1307,9 +1287,19 @@
                 formData.append('files', textBlob, 'pasted_text.txt');
             }
 
-            // Close modal and show loading overlay
-            closeModal('newStyleModal');
-            showLoadingOverlay('Analyzing your writing style...', 'This may take a few moments');
+            // Set flag to prevent navigation
+            isCreatingStyle = true;
+            
+            // Update button state instead of full-page overlay
+            const btn = document.getElementById('createStyleBtn');
+            const originalText = btn.textContent;
+            btn.disabled = true;
+            btn.innerHTML = `
+                <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                    <div class="spinner" style="width: 16px; height: 16px; margin: 0;"></div>
+                    <span>Analyzing your writing style...</span>
+                </div>
+            `;
 
             try {
                 const response = await fetch('http://localhost:3000/api/styles/analyze', {
@@ -1323,38 +1313,60 @@
                 if (response.ok) {
                     const result = await response.json();
                     
-                    updateLoadingMessage('Style created successfully!', 'Loading your new style...');
+                    // Update button to show success
+                    btn.innerHTML = `
+                        <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                            <span style="color: #4CAF50;">✓</span>
+                            <span>Style created successfully!</span>
+                        </div>
+                    `;
                     
                     // Add the new style to our local array without reloading
                     const newStyle = result.style;
                     currentStyles.unshift(newStyle);
                     
-                    // Render styles without reloading page, highlighting the new one
-                    renderStyles(newStyle.id);
+                    // Close modal after a brief success message
+                    setTimeout(() => {
+                        closeModal('newStyleModal');
+                        
+                        // Render styles without reloading page, highlighting the new one
+                        renderStyles(newStyle.id);
+                        
+                        // Update stats without reloading
+                        loadProfile();
+                        
+                        // Automatically select the new style
+                        if (newStyle && newStyle.id) {
+                            setTimeout(() => {
+                                selectStyle(newStyle.id);
+                                // Clear the flag after everything is complete
+                                isCreatingStyle = false;
+                            }, 300);
+                        } else {
+                            isCreatingStyle = false;
+                        }
+                    }, 1000);
                     
-                    // Update stats without reloading
-                    await loadProfile();
-                    
-                    // Automatically select the new style
-                    if (newStyle && newStyle.id) {
-                        // Small delay for visual feedback
-                        setTimeout(() => {
-                            selectStyle(newStyle.id);
-                            hideLoadingOverlay();
-                        }, 800);
-                    } else {
-                        hideLoadingOverlay();
-                    }
                 } else {
-                    hideLoadingOverlay();
                     const error = await response.json();
                     alert(`Error: ${error.message || 'Failed to create style'}`);
+                    
+                    // Reset button and clear flag
+                    btn.disabled = false;
+                    btn.textContent = originalText;
+                    isCreatingStyle = false;
                 }
             } catch (error) {
-                hideLoadingOverlay();
                 console.error('Error creating style:', error);
                 alert('Error creating writing style');
+                
+                // Reset button and clear flag
+                btn.disabled = false;
+                btn.textContent = originalText;
+                isCreatingStyle = false;
             }
+            
+            return false;
         }
 
         async function addDocumentsToStyle() {
@@ -1574,29 +1586,22 @@
             }
         }
 
-        // Loading overlay functions
-        function showLoadingOverlay(message, submessage = '') {
-            const overlay = document.getElementById('loadingOverlay');
-            const messageEl = document.getElementById('loadingMessage');
-            const submessageEl = document.getElementById('loadingSubmessage');
-            
-            messageEl.textContent = message;
-            submessageEl.textContent = submessage;
-            overlay.classList.add('show');
-        }
 
-        function updateLoadingMessage(message, submessage = '') {
-            const messageEl = document.getElementById('loadingMessage');
-            const submessageEl = document.getElementById('loadingSubmessage');
-            
-            messageEl.textContent = message;
-            submessageEl.textContent = submessage;
-        }
 
-        function hideLoadingOverlay() {
-            const overlay = document.getElementById('loadingOverlay');
-            overlay.classList.remove('show');
-        }
+        // Prevent any unwanted page navigation during style creation
+        let isCreatingStyle = false;
+        
+        // Override any potential page navigation during style creation
+        const originalPushState = history.pushState;
+        const originalReplaceState = history.replaceState;
+        
+        window.addEventListener('beforeunload', (e) => {
+            if (isCreatingStyle) {
+                e.preventDefault();
+                e.returnValue = '';
+                return 'Style creation in progress...';
+            }
+        });
 
         // Close modals when clicking outside
         document.querySelectorAll('.modal').forEach(modal => {
