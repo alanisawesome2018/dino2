@@ -2,69 +2,143 @@ const express = require('express');
 const multer = require('multer');
 const cors = require('cors');
 const fs = require('fs').promises;
+const fsSync = require('fs');
 const path = require('path');
 const pdfParse = require('pdf-parse');
 const mammoth = require('mammoth');
+const rtfParser = require('rtf-parser');
 const OpenAI = require('openai');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const sqlite3 = require('sqlite3').verbose();
 const { open } = require('sqlite');
 const config = require('./config');
+const rateLimit = require('express-rate-limit');
+const helmet = require('helmet');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Security middleware - conditional based on environment
+if (process.env.NODE_ENV === 'production') {
+    // Strict security for production
+    app.use(helmet({
+        contentSecurityPolicy: {
+            directives: {
+                defaultSrc: ["'self'"],
+                styleSrc: ["'self'", "'unsafe-inline'"],
+                scriptSrc: ["'self'"],
+                imgSrc: ["'self'", "data:", "https:", "blob:"],
+                fontSrc: ["'self'", "data:"],
+                connectSrc: ["'self'", "https://api.openai.com"],
+                objectSrc: ["'none'"],
+                mediaSrc: ["'self'"],
+                frameSrc: ["'none'"],
+            },
+        },
+        hsts: {
+            maxAge: 31536000,
+            includeSubDomains: true,
+            preload: true
+        }
+    }));
+} else {
+    // Relaxed security for development - no CSP restrictions
+    app.use(helmet({
+        contentSecurityPolicy: false, // Disable CSP entirely in development
+        crossOriginEmbedderPolicy: false,
+        hsts: false
+    }));
+    console.log('Development mode: CSP disabled for compatibility with inline scripts');
+}
+
+// Rate limiting
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 5, // 5 attempts per window
+    message: { error: 'Too many login attempts, please try again later' },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+
+const apiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // 100 requests per window
+    message: { error: 'Too many requests, please try again later' },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+
+// Apply rate limiting
+app.use('/api/auth', authLimiter);
+app.use('/api', apiLimiter);
 
 // Initialize OpenAI
 const openai = new OpenAI({
     apiKey: config.OPENAI_API_KEY
 });
 
-// FIXED CORS Configuration - Allow all origins in development
+// Secure CORS Configuration
 const corsOptions = {
     origin: function (origin, callback) {
         // Allow requests with no origin (like mobile apps or curl requests)
         if (!origin) return callback(null, true);
         
-        // In development, allow all origins
-        // In production, you should restrict this to your actual domain
         const allowedOrigins = [
             'http://localhost:3000',
-            'http://localhost:5500',
-            'http://127.0.0.1:5500',
-            'http://localhost:5173',  // Vite
-            'http://127.0.0.1:5173',
-            'http://localhost:3001',
             'http://127.0.0.1:3000',
-            'http://127.0.0.1:3001'
+            'http://localhost:5500', // Live Server
+            'http://127.0.0.1:5500',
+            'http://localhost:5173', // Vite
+            'http://127.0.0.1:5173',
+            // Add your production domain here when deploying
         ];
         
-        // In development mode, allow all origins
+        // In development mode, allow all localhost/127.0.0.1 origins
         if (process.env.NODE_ENV !== 'production') {
-            return callback(null, true);
+            if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
+                return callback(null, true);
+            }
         }
         
-        // In production, check against whitelist
+        // Check against whitelist
         if (allowedOrigins.indexOf(origin) !== -1) {
             callback(null, true);
         } else {
+            console.log(`CORS blocked origin: ${origin}`);
             callback(new Error('Not allowed by CORS'));
         }
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-    exposedHeaders: ['Content-Length', 'X-Request-Id']
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    exposedHeaders: ['Content-Length', 'X-Request-Id'],
+    maxAge: 86400, // 24 hours
 };
 
 // Apply CORS middleware
 app.use(cors(corsOptions));
 
 // Add this BEFORE other middleware
-app.options('*', cors(corsOptions)); // Enable preflight for all routes
+app.options('*', cors(corsOptions));
 
-// Other middleware
-app.use(express.json());
+// Additional security middleware
+app.use(express.json({ limit: '10mb' })); // Limit JSON payload size
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Security headers
+app.use((req, res, next) => {
+    // Remove server header
+    res.removeHeader('X-Powered-By');
+    // Add custom security headers
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('X-XSS-Protection', '1; mode=block');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    next();
+});
+
+// Static file serving
 app.use(express.static('public'));
 
 // Initialize Database
@@ -130,7 +204,32 @@ async function initializeDatabase() {
         )
     `);
 
-    console.log('Database initialized successfully');
+    // Create performance indexes for faster queries
+    await db.exec(`
+        CREATE INDEX IF NOT EXISTS idx_writing_styles_user_id ON writing_styles(user_id);
+        CREATE INDEX IF NOT EXISTS idx_documents_style_id ON documents(style_id);
+        CREATE INDEX IF NOT EXISTS idx_documents_user_id ON documents(user_id);
+        CREATE INDEX IF NOT EXISTS idx_generated_content_style_id ON generated_content(style_id);
+        CREATE INDEX IF NOT EXISTS idx_generated_content_user_id ON generated_content(user_id);
+        CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+        CREATE INDEX IF NOT EXISTS idx_writing_styles_created_at ON writing_styles(created_at DESC);
+        CREATE INDEX IF NOT EXISTS idx_generated_content_created_at ON generated_content(created_at DESC);
+    `);
+
+    // Create metrics table for analytics
+    await db.exec(`
+        CREATE TABLE IF NOT EXISTS metrics (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            event_type TEXT NOT NULL,
+            user_id INTEGER,
+            metadata TEXT,
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE INDEX IF NOT EXISTS idx_metrics_event_type ON metrics(event_type);
+        CREATE INDEX IF NOT EXISTS idx_metrics_timestamp ON metrics(timestamp DESC);
+    `);
+
+    console.log('Database initialized successfully with performance indexes');
 }
 
 // Configure multer for file uploads
@@ -160,6 +259,78 @@ function authenticateToken(req, res, next) {
     });
 }
 
+// Input validation middleware
+function validateEmail(email) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email) && email.length <= 255;
+}
+
+function validatePassword(password) {
+    return password && password.length >= 8 && password.length <= 128;
+}
+
+function sanitizeInput(input) {
+    if (typeof input !== 'string') return '';
+    return input.trim().slice(0, 1000); // Limit length and trim
+}
+
+// Database backup function
+async function createBackup() {
+    try {
+        const backupDir = path.join(__dirname, 'backups');
+        if (!fsSync.existsSync(backupDir)) {
+            fsSync.mkdirSync(backupDir);
+        }
+        
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        const backupPath = path.join(backupDir, `backup-${timestamp}.sqlite`);
+        
+        // Copy database file
+        await fs.copyFile(path.join(__dirname, 'database.sqlite'), backupPath);
+        
+        // Keep only last 7 backups
+        const backupFiles = (await fs.readdir(backupDir))
+            .filter(file => file.startsWith('backup-') && file.endsWith('.sqlite'))
+            .sort()
+            .reverse();
+        
+        for (let i = 7; i < backupFiles.length; i++) {
+            await fs.unlink(path.join(backupDir, backupFiles[i]));
+        }
+        
+        console.log(`Database backup created: ${backupPath}`);
+        return backupPath;
+    } catch (error) {
+        console.error('Backup failed:', error);
+        throw error;
+    }
+}
+
+// Schedule daily backups
+function scheduleBackups() {
+    const scheduleBackup = () => {
+        createBackup().catch(console.error);
+        setTimeout(scheduleBackup, 24 * 60 * 60 * 1000); // 24 hours
+    };
+    
+    // Initial backup after 1 minute, then daily
+    setTimeout(scheduleBackup, 60 * 1000);
+}
+
+// Metrics tracking function
+async function trackMetric(eventType, userId = null, metadata = {}) {
+    try {
+        await db.run(
+            'INSERT INTO metrics (event_type, user_id, metadata) VALUES (?, ?, ?)',
+            eventType,
+            userId,
+            JSON.stringify(metadata)
+        );
+    } catch (error) {
+        console.error('Failed to track metric:', error);
+    }
+}
+
 // Helper function to extract text from various file types
 async function extractTextFromFile(file) {
     const extension = path.extname(file.originalname).toLowerCase();
@@ -177,6 +348,17 @@ async function extractTextFromFile(file) {
             case '.doc':
                 const result = await mammoth.extractRawText({ buffer: file.buffer });
                 return result.value;
+            
+            case '.rtf':
+                const rtfData = file.buffer.toString('utf-8');
+                try {
+                    const parsed = rtfParser.parseString(rtfData);
+                    return parsed.content || parsed.text || 'RTF content could not be extracted';
+                } catch (rtfError) {
+                    console.warn('RTF parsing failed, trying as plain text:', rtfError.message);
+                    // Fallback: basic RTF text extraction
+                    return rtfData.replace(/\\[a-z]+\d*\s?/gi, '').replace(/[{}]/g, '').trim();
+                }
             
             default:
                 throw new Error(`Unsupported file type: ${extension}`);
@@ -232,6 +414,42 @@ Provide a concise but comprehensive analysis that can be used to replicate this 
     }
 }
 
+// Re-analyze a style after document changes
+async function reanalyzeStyle(styleId, userId) {
+    try {
+        // Get all remaining documents for this style
+        const documents = await db.all(
+            'SELECT content FROM documents WHERE style_id = ? AND user_id = ?',
+            [styleId, userId]
+        );
+        
+        if (documents.length === 0) {
+            // No documents left - clear the analysis but keep the style
+            await db.run(
+                'UPDATE writing_styles SET analysis = ?, sample_text = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?',
+                ['No documents available for analysis. Please add documents to generate a writing style.', '', styleId, userId]
+            );
+            console.log(`Style ${styleId} cleared - no documents remaining (user must manually delete)`);
+            return;
+        }
+        
+        // Re-analyze with remaining documents
+        const texts = documents.map(doc => doc.content);
+        const newAnalysis = await analyzeWritingStyle(texts);
+        
+        // Update the style analysis
+        await db.run(
+            'UPDATE writing_styles SET analysis = ?, sample_text = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?',
+            [newAnalysis, texts[0].substring(0, 500), styleId, userId]
+        );
+        
+        console.log(`Style ${styleId} re-analyzed with ${documents.length} remaining documents`);
+    } catch (error) {
+        console.error('Error re-analyzing style:', error);
+        // Don't throw - document deletion should still succeed even if re-analysis fails
+    }
+}
+
 // Generate content in the analyzed style
 async function generateStyledContent(styleAnalysis, prompt) {
     try {
@@ -277,8 +495,12 @@ app.post('/api/auth/register', async (req, res) => {
             return res.status(400).json({ error: 'Email and password required' });
         }
 
-        if (password.length < 8) {
-            return res.status(400).json({ error: 'Password must be at least 8 characters' });
+        if (!validateEmail(email)) {
+            return res.status(400).json({ error: 'Invalid email format' });
+        }
+
+        if (!validatePassword(password)) {
+            return res.status(400).json({ error: 'Password must be 8-128 characters long' });
         }
 
         // Check if user exists
@@ -411,18 +633,26 @@ app.post('/api/styles/analyze', authenticateToken, upload.array('files', 10), as
         }
 
         console.log(`Processing ${files.length} files for style analysis...`);
+        
+        // Track style creation attempt
+        await trackMetric('style_creation_started', req.user.userId, { 
+            file_count: files.length, 
+            style_name: styleName 
+        });
 
         // Extract text from all uploaded files
         const extractedTexts = [];
+        const fileDetails = []; // Store file details for later database insertion
         for (const file of files) {
             const text = await extractTextFromFile(file);
             extractedTexts.push(text);
-
-            // Save document to database
-            await db.run(
-                'INSERT INTO documents (user_id, style_id, filename, content, file_type) VALUES (?, ?, ?, ?, ?)',
-                [req.user.id, styleId || null, file.originalname, text, path.extname(file.originalname)]
-            );
+            
+            // Store file details for later insertion (after we have style_id)
+            fileDetails.push({
+                filename: file.originalname,
+                content: text,
+                fileType: path.extname(file.originalname)
+            });
         }
 
         console.log('Analyzing writing style...');
@@ -431,6 +661,8 @@ app.post('/api/styles/analyze', authenticateToken, upload.array('files', 10), as
         const styleAnalysis = await analyzeWritingStyle(extractedTexts);
         
         let style;
+        let finalStyleId;
+        
         if (styleId) {
             // Update existing style
             await db.run(
@@ -438,13 +670,23 @@ app.post('/api/styles/analyze', authenticateToken, upload.array('files', 10), as
                 [styleAnalysis, extractedTexts[0].substring(0, 500), styleId, req.user.id]
             );
             style = await db.get('SELECT * FROM writing_styles WHERE id = ?', [styleId]);
+            finalStyleId = styleId;
         } else {
-            // Create new style
+            // Create new style first
             const result = await db.run(
                 'INSERT INTO writing_styles (user_id, name, analysis, sample_text) VALUES (?, ?, ?, ?)',
                 [req.user.id, styleName || 'My Writing Style', styleAnalysis, extractedTexts[0].substring(0, 500)]
             );
             style = await db.get('SELECT * FROM writing_styles WHERE id = ?', [result.lastID]);
+            finalStyleId = result.lastID;
+        }
+        
+        // Now save documents with the correct style_id
+        for (const fileDetail of fileDetails) {
+            await db.run(
+                'INSERT INTO documents (user_id, style_id, filename, content, file_type) VALUES (?, ?, ?, ?, ?)',
+                [req.user.id, finalStyleId, fileDetail.filename, fileDetail.content, fileDetail.fileType]
+            );
         }
 
         res.json({
@@ -662,15 +904,41 @@ app.post('/api/user/password', authenticateToken, async (req, res) => {
 
 // ===================== DOCUMENT ROUTES =====================
 
+// Get document content
+app.get('/api/documents/:id/content', authenticateToken, async (req, res) => {
+    try {
+        const docId = req.params.id;
+        const userId = req.user.id;
+        
+        // Get document content
+        const doc = await db.get(
+            'SELECT filename, content FROM documents WHERE id = ? AND user_id = ?',
+            [docId, userId]
+        );
+        
+        if (!doc) {
+            return res.status(404).json({ error: 'Document not found' });
+        }
+        
+        res.json({ 
+            filename: doc.filename,
+            content: doc.content 
+        });
+    } catch (error) {
+        console.error('Error fetching document content:', error);
+        res.status(500).json({ error: 'Failed to fetch document content' });
+    }
+});
+
 // Delete a specific document
 app.delete('/api/documents/:id', authenticateToken, async (req, res) => {
     try {
         const docId = req.params.id;
         const userId = req.user.id;
         
-        // First check if the document belongs to the user
+        // First check if the document belongs to the user and get style_id
         const doc = await db.get(
-            'SELECT * FROM documents WHERE id = ? AND user_id = ?',
+            'SELECT style_id FROM documents WHERE id = ? AND user_id = ?',
             [docId, userId]
         );
         
@@ -684,6 +952,11 @@ app.delete('/api/documents/:id', authenticateToken, async (req, res) => {
             [docId, userId]
         );
         
+        // Re-analyze the style if there are remaining documents
+        if (doc.style_id) {
+            await reanalyzeStyle(doc.style_id, userId);
+        }
+        
         res.json({ success: true, message: 'Document removed successfully' });
     } catch (error) {
         console.error('Error deleting document:', error);
@@ -691,12 +964,122 @@ app.delete('/api/documents/:id', authenticateToken, async (req, res) => {
     }
 });
 
+// Delete generated content
+app.delete('/api/content/:id', authenticateToken, async (req, res) => {
+    try {
+        const contentId = req.params.id;
+        const userId = req.user.id;
+        
+        // Check if content belongs to user
+        const content = await db.get(
+            'SELECT * FROM generated_content WHERE id = ? AND user_id = ?',
+            [contentId, userId]
+        );
+        
+        if (!content) {
+            return res.status(404).json({ error: 'Generated content not found or unauthorized' });
+        }
+        
+        // Delete the generated content
+        await db.run(
+            'DELETE FROM generated_content WHERE id = ? AND user_id = ?',
+            [contentId, userId]
+        );
+        
+        await trackMetric('content_deleted', userId, {
+            content_id: contentId,
+            style_id: content.style_id
+        });
+        
+        res.json({ success: true, message: 'Generated content deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting generated content:', error);
+        res.status(500).json({ error: 'Failed to delete generated content' });
+    }
+});
+
 
 // ===================== STATIC FILE ROUTES =====================
 
 // Serve login page as default
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+    res.json({ status: 'ok', message: 'Server is running' });
+});
+
+// Developer metrics endpoint
+app.get('/api/metrics', async (req, res) => {
+    try {
+        const { timeframe = '7d', limit = 100 } = req.query;
+        
+        // Calculate date range
+        const now = new Date();
+        const timeframes = {
+            '1h': new Date(now - 60 * 60 * 1000),
+            '24h': new Date(now - 24 * 60 * 60 * 1000),
+            '7d': new Date(now - 7 * 24 * 60 * 60 * 1000),
+            '30d': new Date(now - 30 * 24 * 60 * 60 * 1000)
+        };
+        const since = timeframes[timeframe] || timeframes['7d'];
+        
+        // Get metrics summary
+        const eventCounts = await db.all(`
+            SELECT event_type, COUNT(*) as count 
+            FROM metrics 
+            WHERE timestamp >= ? 
+            GROUP BY event_type 
+            ORDER BY count DESC
+        `, since.toISOString());
+        
+        // Get recent events
+        const recentEvents = await db.all(`
+            SELECT event_type, user_id, metadata, timestamp 
+            FROM metrics 
+            WHERE timestamp >= ? 
+            ORDER BY timestamp DESC 
+            LIMIT ?
+        `, since.toISOString(), parseInt(limit));
+        
+        // Get user stats
+        const userStats = await db.get(`
+            SELECT 
+                COUNT(DISTINCT id) as total_users,
+                COUNT(CASE WHEN created_at >= ? THEN 1 END) as new_users
+            FROM users
+        `, since.toISOString());
+        
+        // Get style stats
+        const styleStats = await db.get(`
+            SELECT 
+                COUNT(*) as total_styles,
+                COUNT(CASE WHEN created_at >= ? THEN 1 END) as new_styles
+            FROM writing_styles
+        `, since.toISOString());
+        
+        res.json({
+            timeframe,
+            since: since.toISOString(),
+            summary: {
+                users: userStats,
+                styles: styleStats,
+                events: eventCounts
+            },
+            recent_events: recentEvents
+        });
+        
+    } catch (error) {
+        console.error('Error fetching metrics:', error);
+        res.status(500).json({ error: 'Failed to fetch metrics' });
+    }
+});
+
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'login.html'));
+});
+
+// Serve dashboard page
+app.get('/dashboard', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
 });
 
 // Health check endpoint
@@ -708,10 +1091,38 @@ app.get('/api/health', (req, res) => {
 async function startServer() {
     await initializeDatabase();
     
+    // Enhanced error logging
+    function logError(error, context = {}) {
+        const logEntry = {
+            timestamp: new Date().toISOString(),
+            error: {
+                message: error.message,
+                stack: error.stack,
+                name: error.name
+            },
+            context
+        };
+        
+        console.error('ERROR:', JSON.stringify(logEntry, null, 2));
+        
+        // Write to error log file
+        const logDir = path.join(__dirname, 'logs');
+        if (!fsSync.existsSync(logDir)) {
+            fsSync.mkdirSync(logDir);
+        }
+        
+        const logFile = path.join(logDir, `error-${new Date().toISOString().split('T')[0]}.log`);
+        fsSync.appendFileSync(logFile, JSON.stringify(logEntry) + '\n');
+    }
+
     app.listen(PORT, () => {
         console.log(`Server running on http://localhost:${PORT}`);
         console.log('CORS is enabled for development');
         console.log('Make sure to update the OpenAI API key in config.js');
+        
+        // Start backup scheduler
+        scheduleBackups();
+        console.log('Database backup scheduler started');
     });
 }
 

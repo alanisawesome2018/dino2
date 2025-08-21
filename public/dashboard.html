@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Writing Style Mimicry - Dashboard</title>
+    <title>Herodotus - Dashboard</title>
     <style>
         * {
             margin: 0;
@@ -169,14 +169,21 @@
         }
 
         .section {
-            margin-bottom: 30px;
+            margin-bottom: 35px;
+            padding: 32px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            border: 1px solid #f0f0f0;
         }
 
         .section-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #f0f0f0;
         }
 
         .section-title {
@@ -220,12 +227,19 @@
 
         .document-item {
             background: white;
-            padding: 10px 15px;
+            padding: 14px 18px;
             border-radius: 8px;
-            margin-bottom: 8px;
+            margin-bottom: 12px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            border: 1px solid #e9ecef;
+            transition: all 0.2s ease;
+        }
+
+        .document-item:hover {
+            background: #f8f9fa;
+            border-color: #dee2e6;
         }
 
         .document-name {
@@ -245,6 +259,67 @@
 
         .remove-document:hover {
             background: #ff3838;
+        }
+
+        .document-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .view-document {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.85em;
+        }
+
+        .view-document:hover {
+            background: #5a67d8;
+        }
+
+        .btn-secondary {
+            background: #e2e8f0;
+            color: #4a5568;
+            border: 1px solid #cbd5e0;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.2s ease;
+        }
+
+        .btn-secondary:hover {
+            background: #edf2f7;
+            border-color: #a0aec0;
+        }
+
+        /* Form Styling Improvements */
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 12px;
+            font-weight: 600;
+            color: #333;
+            font-size: 0.95em;
+        }
+
+
+
+        /* Input Styling */
+        .form-group input[type="text"] {
+            font-size: 16px;
+            transition: border-color 0.2s ease;
+        }
+
+        .form-group input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea !important;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
 
         /* Input Tabs */
@@ -300,24 +375,33 @@
 
         .text-input-area.active {
             display: block;
+            margin-top: 20px;
+        }
+
+        /* When both areas are visible, add spacing */
+        .text-input-area.active + .text-input-area.active {
+            margin-top: 25px;
         }
 
         .text-paste-input {
             width: 100%;
-            padding: 15px;
-            border: 2px solid #667eea;
+            padding: 18px;
+            border: 2px solid #e0e0e0;
             border-radius: 10px;
             font-size: 0.95em;
             resize: vertical;
-            min-height: 200px;
+            min-height: 160px;
             font-family: inherit;
-            background: rgba(102, 126, 234, 0.05);
+            line-height: 1.5;
+            background: #fafbfc;
+            transition: all 0.2s ease;
         }
 
         .text-paste-input:focus {
             outline: none;
-            border-color: #764ba2;
+            border-color: #667eea;
             background: white;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
 
         /* Text Generation */
@@ -450,17 +534,51 @@
         /* History */
         .history-item {
             background: #f8f9fa;
-            padding: 15px;
             border-radius: 8px;
             margin-bottom: 10px;
-            cursor: pointer;
             transition: all 0.3s ease;
             position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .history-main {
+            flex: 1;
+            padding: 15px;
+            cursor: pointer;
+        }
+
+        .history-actions {
+            padding: 15px 12px;
+            border-left: 1px solid #e0e0e0;
         }
 
         .history-item:hover {
             background: #e9ecef;
             transform: translateX(5px);
+        }
+
+        .delete-generation-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 0.85em;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .delete-generation-btn:hover {
+            background: #c82333;
+            transform: scale(1.05);
+        }
+
+        .delete-generation-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
         }
 
         .history-prompt {
@@ -523,7 +641,7 @@
 
         .modal-content {
             background: white;
-            padding: 30px;
+            padding: 12px;
             border-radius: 15px;
             max-width: 600px;
             width: 90%;
@@ -548,14 +666,15 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
-            padding-bottom: 15px;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
             border-bottom: 1px solid #e0e0e0;
         }
 
         .modal-title {
-            font-size: 1.5em;
+            font-size: 1.2em;
             color: #333;
+            margin: 0;
         }
 
         .close-modal {
@@ -581,10 +700,10 @@
         }
 
         .content-section {
-            padding: 20px;
+            padding: 6px 10px;
             background: #f8f9fa;
-            border-radius: 10px;
-            margin-bottom: 20px;
+            border-radius: 4px;
+            margin-bottom: 6px;
         }
 
         .content-section:last-of-type {
@@ -594,16 +713,40 @@
         .content-label {
             font-weight: 600;
             color: #667eea;
-            margin-bottom: 15px;
+            margin-bottom: 4px;
             display: block;
-            font-size: 0.9em;
+            font-size: 0.75em;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
 
         .content-text {
-            line-height: 1.8;
+            line-height: 1.4;
             color: #333;
+            margin: 0;
+            padding: 0;
+            font-size: 0.95em;
+        }
+
+        /* Fix paragraph spacing in document content */
+        .document-content {
+            line-height: 1.4 !important;
+            margin: 0;
+            padding: 0;
+            font-size: 0.95em;
+        }
+
+        .document-content p {
+            margin-bottom: 0.6em;
+            margin-top: 0;
+        }
+
+        .full-content-modal .content-text {
+            white-space: pre-line;
+            line-height: 1.4;
+            margin: 0;
+            padding: 0;
+            font-size: 0.95em;
         }
 
         /* Loading */
@@ -671,7 +814,7 @@
 <body>
     <header class="header">
         <div class="header-content">
-            <div class="logo">Writing Style Mimicry</div>
+            <div class="logo">Herodotus</div>
             <div class="user-menu">
                 <span class="user-email" id="userEmail">Loading...</span>
                 <button class="logout-btn" onclick="logout()">Logout</button>
@@ -750,6 +893,18 @@
         </main>
     </div>
 
+    <!-- Footer -->
+    <footer style="margin-top: 40px; padding: 25px 20px; border-top: 1px solid #e0e0e0; text-align: center; color: #666; font-size: 0.85em; background: #fafbfc;">
+        <p style="margin: 0 0 12px 0; font-weight: 500;">Herodotus &copy; 2025</p>
+        <p style="margin: 0; line-height: 1.5;">
+            <a href="/terms.html" target="_blank" style="color: #667eea; text-decoration: none; margin: 0 15px; padding: 5px 0;">Terms of Service</a>
+            <span style="color: #ddd;">|</span>
+            <a href="/privacy.html" target="_blank" style="color: #667eea; text-decoration: none; margin: 0 15px; padding: 5px 0;">Privacy Policy</a>
+            <span style="color: #ddd;">|</span>
+            <a href="/usage.html" target="_blank" style="color: #667eea; text-decoration: none; margin: 0 15px; padding: 5px 0;">Usage Guidelines</a>
+        </p>
+    </footer>
+
     <!-- New Style Modal -->
     <div class="modal" id="newStyleModal">
         <div class="modal-content">
@@ -765,26 +920,30 @@
                 <label>Add Writing Samples:</label>
                 <div class="input-tabs">
                     <button class="input-tab active" onclick="switchInputMethod('upload', 'modal')">Upload Files</button>
-                    <button class="input-tab" onclick="switchInputMethod('paste', 'modal')">Paste Text</button>
+                    <button class="input-tab" onclick="switchInputMethod('paste', 'modal')">+ Add Text Samples</button>
                 </div>
                 
                 <div id="modalUploadArea" class="upload-area">
                     <div class="file-upload" id="modalFileUpload">
-                        <input type="file" id="modalFileInput" multiple accept=".txt,.doc,.docx,.pdf">
+                        <input type="file" id="modalFileInput" multiple accept=".txt,.doc,.docx,.rtf,.pdf">
                         <svg width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="#667eea" stroke-width="2">
                             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                             <polyline points="7 10 12 15 17 10"></polyline>
                             <line x1="12" y1="15" x2="12" y2="3"></line>
                         </svg>
                         <p style="margin-top: 10px; color: #666;">Click to upload or drag and drop</p>
-                        <p style="font-size: 0.85em; color: #999;">Supported: TXT, DOC, DOCX, PDF</p>
+                        <p style="font-size: 0.85em; color: #999;">Supported: TXT, DOC, DOCX, RTF, PDF</p>
                     </div>
                     <div class="file-list" id="modalFileList"></div>
                 </div>
                 
                 <div id="modalPasteArea" class="text-input-area">
-                    <textarea class="text-paste-input" id="modalTextInput" placeholder="Paste your writing samples here. The more text you provide, the better the style analysis will be."></textarea>
-                    <p style="font-size: 0.85em; color: #666; margin-top: 10px;">Tip: Include at least 500 words for best results</p>
+                    <div id="textSamplesList"></div>
+                    <textarea class="text-paste-input" id="modalTextInput" placeholder="Paste your writing samples here. You can add multiple text samples by clicking 'Add Text Sample' after pasting each one."></textarea>
+                    <div style="display: flex; gap: 10px; margin-top: 10px; align-items: center;">
+                        <button type="button" class="btn-secondary" onclick="addTextSample('modal')" style="padding: 6px 12px; font-size: 0.9em;">Add Text Sample</button>
+                        <p style="font-size: 0.85em; color: #666; margin: 0;">Tip: Include at least 500 words total for best results</p>
+                    </div>
                 </div>
             </div>
             <button class="generate-btn" id="createStyleBtn" onclick="createNewStyle(event); return false;">Analyze & Create Style</button>
@@ -801,24 +960,30 @@
             <div class="form-group">
                 <div class="input-tabs">
                     <button class="input-tab active" onclick="switchInputMethod('upload', 'addDocs')">Upload Files</button>
-                    <button class="input-tab" onclick="switchInputMethod('paste', 'addDocs')">Paste Text</button>
+                    <button class="input-tab" onclick="switchInputMethod('paste', 'addDocs')">+ Add Text Samples</button>
                 </div>
                 
                 <div id="addDocsUploadArea" class="upload-area">
                     <div class="file-upload" id="addDocsFileUpload">
-                        <input type="file" id="addDocsFileInput" multiple accept=".txt,.doc,.docx,.pdf">
+                        <input type="file" id="addDocsFileInput" multiple accept=".txt,.doc,.docx,.rtf,.pdf">
                         <svg width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="#667eea" stroke-width="2">
                             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                             <polyline points="7 10 12 15 17 10"></polyline>
                             <line x1="12" y1="15" x2="12" y2="3"></line>
                         </svg>
                         <p style="margin-top: 10px; color: #666;">Click to upload or drag and drop</p>
+                        <p style="font-size: 0.85em; color: #999;">Supported: TXT, DOC, DOCX, RTF, PDF</p>
                     </div>
                     <div class="file-list" id="addDocsFileList"></div>
                 </div>
                 
                 <div id="addDocsPasteArea" class="text-input-area">
-                    <textarea class="text-paste-input" id="addDocsTextInput" placeholder="Paste additional writing samples here to improve the style analysis."></textarea>
+                    <div id="addDocsTextSamplesList"></div>
+                    <textarea class="text-paste-input" id="addDocsTextInput" placeholder="Paste additional writing samples here. You can add multiple text samples by clicking 'Add Text Sample' after pasting each one."></textarea>
+                    <div style="display: flex; gap: 10px; margin-top: 10px; align-items: center;">
+                        <button type="button" class="btn-secondary" onclick="addTextSample('addDocs')" style="padding: 6px 12px; font-size: 0.9em;">Add Text Sample</button>
+                        <p style="font-size: 0.85em; color: #666; margin: 0;">Add multiple samples to improve analysis</p>
+                    </div>
                 </div>
             </div>
             <button class="generate-btn" id="addDocsBtn" onclick="addDocumentsToStyle()">Add Documents</button>
@@ -998,10 +1163,76 @@
                 item.className = 'document-item';
                 item.innerHTML = `
                     <span class="document-name">${doc.filename}</span>
-                    <button class="remove-document" onclick="removeDocument(${doc.id})">Remove</button>
+                    <div class="document-actions">
+                        <button class="view-document" onclick="viewDocument(${doc.id}, '${doc.filename}')">View</button>
+                        <button class="remove-document" onclick="removeDocument(${doc.id})">Remove</button>
+                    </div>
                 `;
                 container.appendChild(item);
             });
+        }
+
+        async function viewDocument(docId, filename) {
+            const token = localStorage.getItem('token');
+            
+            // Update modal title
+            document.querySelector('#fullContentModal .modal-title').textContent = `Document: ${filename}`;
+            
+            // Show loading state
+            const container = document.getElementById('fullContentText');
+            container.innerHTML = `
+                <div class="content-section">
+                    <div class="content-label">Loading document: ${escapeHtml(filename)}</div>
+                    <div style="text-align: center; padding: 20px;">
+                        <div class="spinner"></div>
+                        <p style="margin-top: 10px; color: #666;">Loading content...</p>
+                    </div>
+                </div>
+            `;
+            showModal('fullContentModal');
+            
+            try {
+                const response = await fetch(`http://localhost:3000/api/documents/${docId}/content`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    // Safely display content
+                    container.innerHTML = `
+                        <div class="content-section">
+                            <div class="content-label">Document: ${escapeHtml(filename)}</div>
+                            <div class="document-content" style="white-space: pre-wrap; line-height: 1.6; color: #333; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                            </div>
+                        </div>
+                    `;
+                    
+                    // Safely set content using textContent
+                    container.querySelector('.document-content').textContent = data.content;
+                } else {
+                    const errorData = await response.json().catch(() => ({ error: 'Unknown error occurred' }));
+                    container.innerHTML = `
+                        <div class="content-section">
+                            <div class="content-label" style="color: #ff4757;">Error Loading Document</div>
+                            <div style="color: #666; line-height: 1.5;">
+                                <p style="margin: 0 0 10px 0; font-weight: 600;">Failed to load document content</p>
+                                <p style="margin: 0; font-size: 0.9em; color: #888;">${errorData.error || 'Please try again or contact support at alancai888888@gmail.com'}</p>
+                            </div>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error loading document:', error);
+                container.innerHTML = `
+                    <div class="content-section">
+                        <div class="content-label" style="color: #ff4757;">Network Error</div>
+                        <p style="color: #666;">Unable to connect to server. Please check your connection and try again.</p>
+                    </div>
+                `;
+            }
         }
 
         async function loadStyleHistory() {
@@ -1036,13 +1267,24 @@
             history.forEach(item => {
                 const div = document.createElement('div');
                 div.className = 'history-item';
-                div.onclick = () => showFullContent(item.content, item.prompt);
+                div.id = `history-item-${item.id}`;
                 div.innerHTML = `
-                    <div class="history-prompt">${item.prompt}</div>
-                    <div class="history-content">${item.content}</div>
-                    <div class="history-date">${formatLocalDateTime(item.created_at)}</div>
-                    <span class="expand-indicator">⤢</span>
+                    <div class="history-main">
+                        <div class="history-prompt">${escapeHtml(item.prompt)}</div>
+                        <div class="history-content">${escapeHtml(item.content)}</div>
+                        <div class="history-date">${formatLocalDateTime(item.created_at)}</div>
+                        <span class="expand-indicator">⤢</span>
+                    </div>
+                    <div class="history-actions">
+                        <button class="delete-generation-btn" onclick="deleteGeneration(${item.id}); event.stopPropagation();">Delete</button>
+                    </div>
                 `;
+                
+                // Add click handler to the main section
+                const mainSection = div.querySelector('.history-main');
+                mainSection.addEventListener('click', () => {
+                    showFullContent(item.content, item.prompt);
+                });
                 container.appendChild(div);
             });
         }
@@ -1111,11 +1353,19 @@
                     await loadProfile();
                 } else {
                     const error = await response.json();
-                    alert(`Error: ${error.message || 'Generation failed'}`);
+                    let errorMessage = 'Content generation failed';
+                    if (error.message) {
+                        if (error.message.includes('API key')) {
+                            errorMessage = 'OpenAI API configuration issue. Please contact support at alancai888888@gmail.com';
+                        } else {
+                            errorMessage = error.message;
+                        }
+                    }
+                    alert(`Error: ${errorMessage}`);
                 }
             } catch (error) {
                 console.error('Error generating content:', error);
-                alert('Error generating content');
+                alert('Network error: Unable to generate content. Please check your connection and try again.');
             } finally {
                 generateBtn.disabled = false;
                 generateBtn.classList.remove('loading');
@@ -1127,24 +1377,41 @@
             const container = document.getElementById('resultContainer');
             container.innerHTML = `
                 <div class="result">
-                    <div class="result-content">${content}</div>
-                    <button class="copy-btn" onclick="copyToClipboard(\`${content.replace(/`/g, '\\`').replace(/'/g, "\\'")}\`)">Copy to Clipboard</button>
+                    <div class="result-content"></div>
+                    <button class="copy-btn">Copy to Clipboard</button>
                 </div>
             `;
+            
+            // Safely set content and event handler
+            const contentDiv = container.querySelector('.result-content');
+            const copyBtn = container.querySelector('.copy-btn');
+            contentDiv.textContent = content;
+            copyBtn.onclick = () => copyToClipboard(content);
         }
 
         function showFullContent(content, prompt) {
             fullContentText = content;
-            document.getElementById('fullContentText').innerHTML = `
+            
+            // Update modal title for generated content
+            document.querySelector('#fullContentModal .modal-title').textContent = 'Generated Content';
+            
+            const container = document.getElementById('fullContentText');
+            container.innerHTML = `
                 <div class="content-section">
                     <span class="content-label">Prompt:</span>
-                    <div class="content-text">${prompt}</div>
+                    <div class="content-text"></div>
                 </div>
                 <div class="content-section">
                     <span class="content-label">Generated Content:</span>
-                    <div class="content-text">${content}</div>
+                    <div class="content-text"></div>
                 </div>
             `;
+            
+            // Safely set content using textContent
+            const contentDivs = container.querySelectorAll('.content-text');
+            contentDivs[0].textContent = prompt;
+            contentDivs[1].textContent = content;
+            
             showModal('fullContentModal');
         }
 
@@ -1163,6 +1430,13 @@
 
         function hideLoadingOverlay() {
             document.getElementById('loadingOverlay').classList.remove('show');
+        }
+
+        // Security: HTML sanitization function
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         }
 
         function copyToClipboard(text) {
@@ -1210,7 +1484,7 @@
                     document.getElementById('modalUploadArea').style.display = 'block';
                     document.getElementById('modalPasteArea').style.display = 'none';
                 } else {
-                    document.getElementById('modalUploadArea').style.display = 'none';
+                    document.getElementById('modalUploadArea').style.display = 'block'; // Keep both visible
                     document.getElementById('modalPasteArea').style.display = 'block';
                 }
             } else if (context === 'addDocs') {
@@ -1218,7 +1492,7 @@
                     document.getElementById('addDocsUploadArea').style.display = 'block';
                     document.getElementById('addDocsPasteArea').style.display = 'none';
                 } else {
-                    document.getElementById('addDocsUploadArea').style.display = 'none';
+                    document.getElementById('addDocsUploadArea').style.display = 'block'; // Keep both visible
                     document.getElementById('addDocsPasteArea').style.display = 'block';
                 }
             }
@@ -1228,9 +1502,12 @@
             document.getElementById('newStyleModal').classList.add('show');
             uploadedFiles = [];
             modalTextContent = '';
+            modalTextSamples = [];
             document.getElementById('modalFileList').innerHTML = '';
+            document.getElementById('textSamplesList').innerHTML = '';
             document.getElementById('styleName').value = '';
             document.getElementById('modalTextInput').value = '';
+            document.getElementById('modalTextInput').placeholder = 'Paste your writing samples here. You can add multiple text samples by clicking \'Add Text Sample\' after pasting each one.';
             // Reset to upload tab
             document.querySelector('#newStyleModal .input-tab').click();
             
@@ -1252,8 +1529,11 @@
             document.getElementById('addDocumentsModal').classList.add('show');
             addDocsFiles = [];
             addDocsTextContent = '';
+            addDocsTextSamples = [];
             document.getElementById('addDocsFileList').innerHTML = '';
+            document.getElementById('addDocsTextSamplesList').innerHTML = '';
             document.getElementById('addDocsTextInput').value = '';
+            document.getElementById('addDocsTextInput').placeholder = 'Paste additional writing samples here. You can add multiple text samples by clicking \'Add Text Sample\' after pasting each one.';
             // Reset to upload tab
             document.querySelector('#addDocumentsModal .input-tab').click();
         }
@@ -1273,9 +1553,12 @@
 
             // Check if user has provided either files or text
             modalTextContent = document.getElementById('modalTextInput').value.trim();
+            const hasFiles = uploadedFiles.length > 0;
+            const hasTextSamples = modalTextSamples.length > 0;
+            const hasCurrentText = modalTextContent.length > 0;
             
-            if (uploadedFiles.length === 0 && !modalTextContent) {
-                alert('Please upload files or paste text samples');
+            if (!hasFiles && !hasTextSamples && !hasCurrentText) {
+                alert('Please upload files or add text samples');
                 return false;
             }
 
@@ -1283,16 +1566,60 @@
             const formData = new FormData();
             formData.append('styleName', styleName);
             
-            // Add uploaded files
-            uploadedFiles.forEach(file => {
-                formData.append('files', file);
+            // Add uploaded files (validate they still exist)
+            let validFiles = [];
+            for (let i = 0; i < uploadedFiles.length; i++) {
+                const file = uploadedFiles[i];
+                try {
+                    // Test if file is still valid by accessing its properties
+                    const testName = file.name;
+                    const testSize = file.size;
+                    validFiles.push(file);
+                    formData.append('files', file);
+                } catch (error) {
+                    // Skip invalid files
+                }
+            }
+            
+            // Add all text samples as files
+            modalTextSamples.forEach((textSample, index) => {
+                const textBlob = new Blob([textSample], { type: 'text/plain' });
+                formData.append('files', textBlob, `text_sample_${index + 1}.txt`);
             });
             
-            // Add pasted text as a file if present
+            // Add current text input as a file if present
             if (modalTextContent) {
                 const textBlob = new Blob([modalTextContent], { type: 'text/plain' });
-                formData.append('files', textBlob, 'pasted_text.txt');
+                formData.append('files', textBlob, 'current_text_input.txt');
             }
+            
+            // Check if we have any valid files or text samples
+            if (validFiles.length === 0 && modalTextSamples.length === 0 && !modalTextContent) {
+                btn.innerHTML = `<span style="color: #ff4757;">❌ No valid files found</span>`;
+                setTimeout(() => {
+                    btn.disabled = false;
+                    btn.textContent = originalText;
+                }, 3000);
+                isCreatingStyle = false;
+                return false;
+            }
+            
+            // Check total file size (max 50MB for all files combined)
+            const totalSize = validFiles.reduce((sum, file) => sum + file.size, 0);
+            const maxSizeMB = 50;
+            const maxSizeBytes = maxSizeMB * 1024 * 1024;
+            
+            if (totalSize > maxSizeBytes) {
+                btn.innerHTML = `<span style="color: #ff4757;">❌ Files too large (${Math.round(totalSize/1024/1024)}MB). Max: ${maxSizeMB}MB</span>`;
+                setTimeout(() => {
+                    btn.disabled = false;
+                    btn.textContent = originalText;
+                }, 5000);
+                isCreatingStyle = false;
+                return false;
+            }
+            
+            // All validation passed, proceed with creation
 
             // Set flag to track style creation
             isCreatingStyle = true;
@@ -1309,18 +1636,34 @@
             `;
 
             try {
+                // Show clean loading state
+                btn.innerHTML = `
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                        <div class="spinner" style="width: 16px; height: 16px; margin: 0;"></div>
+                        <span>Analyzing your writing style...</span>
+                    </div>
+                `;
+                
+                // Add timeout for large files
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minute timeout
+                
                 const response = await fetch('http://localhost:3000/api/styles/analyze', {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${token}`
                     },
-                    body: formData
+                    body: formData,
+                    signal: controller.signal
                 });
-
+                
+                clearTimeout(timeoutId);
+                
                 if (response.ok) {
                     const result = await response.json();
+                    const newStyle = result.style;
                     
-                    // Update button to show success
+                    // Show success state briefly
                     btn.innerHTML = `
                         <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
                             <span style="color: #4CAF50;">✓</span>
@@ -1328,48 +1671,63 @@
                         </div>
                     `;
                     
-                    // Add the new style to our local array without reloading
-                    const newStyle = result.style;
+                    // Add new style to current styles and refresh the UI
                     currentStyles.unshift(newStyle);
                     
-                    // Close modal after a brief success message
+                    // Close modal after showing success
                     setTimeout(() => {
                         closeModal('newStyleModal');
-                        
-                        // Render styles without reloading page, highlighting the new one
-                        renderStyles(newStyle.id);
-                        
-                        // Update stats without reloading
-                        loadProfile();
-                        
-                        // Automatically select the new style
-                        if (newStyle && newStyle.id) {
-                            setTimeout(() => {
-                                selectStyle(newStyle.id);
-                                // Clear the flag after everything is complete
-                                isCreatingStyle = false;
-                            }, 300);
-                        } else {
-                            isCreatingStyle = false;
-                        }
-                    }, 1000);
+                        btn.disabled = false;
+                        btn.textContent = 'Analyze & Create Style';
+                    }, 1500);
+                    
+                    renderStyles(newStyle.id);
+                    loadProfile(); // Refresh the profile stats
+                    
+                    // Auto-select the new style
+                    if (newStyle && newStyle.id) {
+                        setTimeout(() => {
+                            selectStyle(newStyle.id);
+                        }, 100);
+                    }
+                    
+                    isCreatingStyle = false;
                     
                 } else {
-                    const error = await response.json();
-                    alert(`Error: ${error.message || 'Failed to create style'}`);
+                    let errorMsg = `HTTP ${response.status}`;
+                    try {
+                        const error = await response.json();
+                        errorMsg = error.message || errorMsg;
+                    } catch (e) {
+                        // Use default error message if parsing fails
+                    }
                     
-                    // Reset button and clear flag
-                    btn.disabled = false;
-                    btn.textContent = originalText;
+                    btn.innerHTML = `<span style="color: #ff4757;">❌ Error: ${errorMsg}</span>`;
+                    
+                    setTimeout(() => {
+                        btn.disabled = false;
+                        btn.textContent = originalText;
+                    }, 3000);
+                    
                     isCreatingStyle = false;
                 }
             } catch (error) {
-                console.error('Error creating style:', error);
-                alert('Error creating writing style');
+                let errorMessage = error.message;
+                if (error.name === 'AbortError') {
+                    errorMessage = 'Request timed out. Try with smaller files.';
+                } else if (error.message.includes('Load failed')) {
+                    errorMessage = 'Connection failed. Please try again.';
+                } else if (error.message.includes('Failed to fetch')) {
+                    errorMessage = 'Cannot reach server. Please try again.';
+                }
                 
-                // Reset button and clear flag
-                btn.disabled = false;
-                btn.textContent = originalText;
+                btn.innerHTML = `<span style="color: #ff4757;">❌ ${errorMessage}</span>`;
+                
+                setTimeout(() => {
+                    btn.disabled = false;
+                    btn.textContent = originalText;
+                }, 4000);
+                
                 isCreatingStyle = false;
             }
             
@@ -1439,6 +1797,27 @@
                 return;
             }
 
+            // Find the document element and show immediate loading feedback
+            const documentElements = document.querySelectorAll('.document-item');
+            let targetElement = null;
+            
+            documentElements.forEach(element => {
+                const removeBtn = element.querySelector('.remove-document');
+                if (removeBtn && removeBtn.onclick && removeBtn.onclick.toString().includes(docId)) {
+                    targetElement = element;
+                }
+            });
+            
+            if (targetElement) {
+                // Show immediate visual feedback
+                targetElement.style.opacity = '0.5';
+                targetElement.style.pointerEvents = 'none';
+                const removeBtn = targetElement.querySelector('.remove-document');
+                const originalText = removeBtn.textContent;
+                removeBtn.textContent = 'Removing...';
+                removeBtn.disabled = true;
+            }
+
             const token = localStorage.getItem('token');
             try {
                 const response = await fetch(`http://localhost:3000/api/documents/${docId}`, {
@@ -1449,14 +1828,110 @@
                 });
 
                 if (response.ok) {
+                    // Smooth removal animation
+                    if (targetElement) {
+                        targetElement.style.transition = 'all 0.3s ease';
+                        targetElement.style.transform = 'translateX(-100%)';
+                        targetElement.style.opacity = '0';
+                        
+                        setTimeout(() => {
+                            targetElement.remove();
+                        }, 300);
+                    }
+                    
                     await loadStyleDetails();
                     await loadProfile();
                 } else {
+                    // Restore element if error
+                    if (targetElement) {
+                        targetElement.style.opacity = '1';
+                        targetElement.style.pointerEvents = 'auto';
+                        const removeBtn = targetElement.querySelector('.remove-document');
+                        removeBtn.textContent = 'Remove';
+                        removeBtn.disabled = false;
+                    }
                     alert('Error removing document');
                 }
             } catch (error) {
                 console.error('Error removing document:', error);
+                // Restore element if error
+                if (targetElement) {
+                    targetElement.style.opacity = '1';
+                    targetElement.style.pointerEvents = 'auto';
+                    const removeBtn = targetElement.querySelector('.remove-document');
+                    removeBtn.textContent = 'Remove';
+                    removeBtn.disabled = false;
+                }
                 alert('Error removing document');
+            }
+        }
+
+        async function deleteGeneration(generationId) {
+            if (!confirm('Are you sure you want to delete this generated content?')) {
+                return;
+            }
+
+            // Find the generation element and show immediate loading feedback
+            const generationElement = document.getElementById(`history-item-${generationId}`);
+            
+            if (generationElement) {
+                // Show immediate visual feedback
+                generationElement.style.opacity = '0.5';
+                generationElement.style.pointerEvents = 'none';
+                const deleteBtn = generationElement.querySelector('.delete-generation-btn');
+                const originalText = deleteBtn.textContent;
+                deleteBtn.textContent = 'Deleting...';
+                deleteBtn.disabled = true;
+            }
+
+            const token = localStorage.getItem('token');
+            try {
+                const response = await fetch(`http://localhost:3000/api/content/${generationId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    // Smooth removal animation
+                    if (generationElement) {
+                        generationElement.style.transform = 'scale(0.8)';
+                        generationElement.style.opacity = '0';
+                        setTimeout(() => {
+                            generationElement.remove();
+                            // Check if no generations left
+                            const container = document.getElementById('styleHistoryContainer');
+                            if (container.children.length === 0) {
+                                container.innerHTML = '<p style="color: #999;">No content generated for this style yet</p>';
+                            }
+                        }, 300);
+                    }
+                    // Reload profile to update counts
+                    await loadProfile();
+                } else {
+                    // Restore element if error
+                    if (generationElement) {
+                        generationElement.style.opacity = '1';
+                        generationElement.style.pointerEvents = 'auto';
+                        const deleteBtn = generationElement.querySelector('.delete-generation-btn');
+                        deleteBtn.textContent = originalText;
+                        deleteBtn.disabled = false;
+                    }
+                    const error = await response.json();
+                    alert(`Error: ${error.message || 'Failed to delete generation'}`);
+                }
+            } catch (error) {
+                console.error('Error deleting generation:', error);
+                // Restore element if error
+                if (generationElement) {
+                    generationElement.style.opacity = '1';
+                    generationElement.style.pointerEvents = 'auto';
+                    const deleteBtn = generationElement.querySelector('.delete-generation-btn');
+                    deleteBtn.textContent = 'Delete';
+                    deleteBtn.disabled = false;
+                }
+                alert('Error deleting generation');
             }
         }
 
@@ -1549,7 +2024,7 @@
             const fileListElement = context === 'modal' ? 'modalFileList' : 'addDocsFileList';
             const fileList = document.getElementById(fileListElement);
             const targetArray = context === 'modal' ? uploadedFiles : addDocsFiles;
-            const allowedTypes = ['.txt', '.doc', '.docx', '.pdf'];
+            const allowedTypes = ['.txt', '.doc', '.docx', '.rtf', '.pdf'];
             
             Array.from(files).forEach(file => {
                 const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
@@ -1590,6 +2065,75 @@
                         item.remove();
                     }
                 });
+            }
+        }
+
+        // Multiple text samples management
+        let modalTextSamples = [];
+        let addDocsTextSamples = [];
+
+        function addTextSample(context) {
+            const inputId = context === 'modal' ? 'modalTextInput' : 'addDocsTextInput';
+            const listId = context === 'modal' ? 'textSamplesList' : 'addDocsTextSamplesList';
+            const textInput = document.getElementById(inputId);
+            const textContent = textInput.value.trim();
+            
+            if (!textContent) {
+                alert('Please paste some text before adding the sample');
+                return;
+            }
+            
+            const sampleArray = context === 'modal' ? modalTextSamples : addDocsTextSamples;
+            const sampleIndex = sampleArray.length;
+            
+            // Add to array
+            sampleArray.push(textContent);
+            
+            // Create visual element
+            const samplesList = document.getElementById(listId);
+            const sampleItem = document.createElement('div');
+            sampleItem.className = 'document-item';
+            sampleItem.style.marginBottom = '10px';
+            sampleItem.innerHTML = `
+                <span>Text Sample ${sampleIndex + 1} (${textContent.length} characters)</span>
+                <button class="remove-document" onclick="removeTextSample(${sampleIndex}, '${context}')">Remove</button>
+            `;
+            samplesList.appendChild(sampleItem);
+            
+            // Clear the input
+            textInput.value = '';
+            textInput.placeholder = 'Paste another writing sample here...';
+        }
+
+        function removeTextSample(index, context) {
+            const sampleArray = context === 'modal' ? modalTextSamples : addDocsTextSamples;
+            const listId = context === 'modal' ? 'textSamplesList' : 'addDocsTextSamplesList';
+            
+            // Remove from array
+            sampleArray.splice(index, 1);
+            
+            // Rebuild the visual list with updated indices
+            const samplesList = document.getElementById(listId);
+            samplesList.innerHTML = '';
+            
+            sampleArray.forEach((sample, newIndex) => {
+                const sampleItem = document.createElement('div');
+                sampleItem.className = 'document-item';
+                sampleItem.style.marginBottom = '10px';
+                sampleItem.innerHTML = `
+                    <span>Text Sample ${newIndex + 1} (${sample.length} characters)</span>
+                    <button class="remove-document" onclick="removeTextSample(${newIndex}, '${context}')">Remove</button>
+                `;
+                samplesList.appendChild(sampleItem);
+            });
+            
+            // Reset placeholder if no samples left
+            if (sampleArray.length === 0) {
+                const inputId = context === 'modal' ? 'modalTextInput' : 'addDocsTextInput';
+                const textInput = document.getElementById(inputId);
+                textInput.placeholder = context === 'modal' 
+                    ? 'Paste your writing samples here. You can add multiple text samples by clicking \'Add Text Sample\' after pasting each one.'
+                    : 'Paste additional writing samples here. You can add multiple text samples by clicking \'Add Text Sample\' after pasting each one.';
             }
         }
 
