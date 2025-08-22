@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify Email - Herodotus</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 500px;
+            text-align: center;
+        }
+
+        .logo {
+            margin-bottom: 30px;
+        }
+
+        .logo h1 {
+            color: #667eea;
+            font-size: 2em;
+            font-weight: bold;
+        }
+
+        .logo p {
+            color: #666;
+            margin-top: 5px;
+            font-size: 0.9em;
+        }
+
+        .icon {
+            font-size: 4em;
+            margin-bottom: 20px;
+        }
+
+        .success-icon {
+            color: #2ed573;
+        }
+
+        .error-icon {
+            color: #ff4757;
+        }
+
+        .loading-icon {
+            color: #667eea;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        h2 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.5em;
+        }
+
+        .message {
+            color: #666;
+            margin-bottom: 30px;
+            line-height: 1.6;
+            font-size: 1.1em;
+        }
+
+        .btn {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            transition: transform 0.2s ease;
+            border: none;
+            cursor: pointer;
+            margin: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: #f8f9fa;
+            color: #667eea;
+            border: 2px solid #667eea;
+        }
+
+        .btn-secondary:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .loading {
+            display: none;
+        }
+
+        .success {
+            display: none;
+        }
+
+        .error {
+            display: none;
+        }
+
+        .resend-section {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        input[type="email"] {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+
+        input[type="email"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .resend-message {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 5px;
+            display: none;
+        }
+
+        .resend-message.success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+
+        .resend-message.error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">
+            <h1>Herodotus</h1>
+            <p>Your personal AI writing assistant</p>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loading" class="loading">
+            <div class="icon loading-icon">⟳</div>
+            <h2>Verifying Your Email</h2>
+            <p class="message">Please wait while we verify your email address...</p>
+        </div>
+
+        <!-- Success State -->
+        <div id="success" class="success">
+            <div class="icon success-icon">✓</div>
+            <h2>Email Verified Successfully!</h2>
+            <p class="message">Your email address has been verified. You can now log in to your Herodotus account and start using your personal AI writing assistant.</p>
+            <a href="/login.html" class="btn">Continue to Login</a>
+        </div>
+
+        <!-- Error State -->
+        <div id="error" class="error">
+            <div class="icon error-icon">✗</div>
+            <h2>Verification Failed</h2>
+            <p class="message" id="errorMessage">There was an issue verifying your email address. The link may have expired or already been used.</p>
+            
+            <div class="resend-section">
+                <h3 style="color: #333; margin-bottom: 15px;">Need a New Verification Link?</h3>
+                <form id="resendForm">
+                    <div class="form-group">
+                        <label for="resendEmail">Enter your email address:</label>
+                        <input type="email" id="resendEmail" required placeholder="your-email@example.com">
+                    </div>
+                    <button type="submit" class="btn">Send New Verification Email</button>
+                </form>
+                <div id="resendMessage" class="resend-message"></div>
+            </div>
+            
+            <div style="margin-top: 20px;">
+                <a href="/login.html" class="btn btn-secondary">Back to Login</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Get token from URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const verificationToken = urlParams.get('token');
+
+        // Show loading initially
+        document.getElementById('loading').style.display = 'block';
+
+        if (!verificationToken) {
+            showError('Invalid verification link. No token provided.');
+        } else {
+            verifyEmail(verificationToken);
+        }
+
+        async function verifyEmail(token) {
+            try {
+                const response = await fetch(`/api/auth/verify-email?token=${encodeURIComponent(token)}`);
+                const data = await response.json();
+
+                if (response.ok) {
+                    showSuccess();
+                } else {
+                    showError(data.error || 'Verification failed');
+                }
+            } catch (error) {
+                console.error('Verification error:', error);
+                showError('Network error. Please check your connection and try again.');
+            }
+        }
+
+        function showSuccess() {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('error').style.display = 'none';
+            document.getElementById('success').style.display = 'block';
+        }
+
+        function showError(message) {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('success').style.display = 'none';
+            document.getElementById('errorMessage').textContent = message;
+            document.getElementById('error').style.display = 'block';
+        }
+
+        // Handle resend verification email
+        document.getElementById('resendForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('resendEmail').value;
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            const messageDiv = document.getElementById('resendMessage');
+            
+            // Show loading state
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Sending...';
+            messageDiv.style.display = 'none';
+            
+            try {
+                const response = await fetch('/api/auth/resend-verification', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    messageDiv.className = 'resend-message success';
+                    messageDiv.textContent = data.message;
+                    messageDiv.style.display = 'block';
+                    
+                    // Clear the form
+                    document.getElementById('resendForm').reset();
+                } else {
+                    messageDiv.className = 'resend-message error';
+                    messageDiv.textContent = data.error || 'Failed to send verification email';
+                    messageDiv.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Resend verification error:', error);
+                messageDiv.className = 'resend-message error';
+                messageDiv.textContent = 'Network error. Please check your connection and try again.';
+                messageDiv.style.display = 'block';
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Send New Verification Email';
+            }
+        });
+    </script>
+</body>
+</html>

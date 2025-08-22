@@ -15,100 +15,93 @@ const { open } = require('sqlite');
 const config = require('./config');
 const rateLimit = require('express-rate-limit');
 const helmet = require('helmet');
+const nodemailer = require('nodemailer');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Security middleware - conditional based on environment
-if (process.env.NODE_ENV === 'production') {
-    // Strict security for production
-    app.use(helmet({
-        contentSecurityPolicy: {
-            directives: {
-                defaultSrc: ["'self'"],
-                styleSrc: ["'self'", "'unsafe-inline'"],
-                scriptSrc: ["'self'"],
-                imgSrc: ["'self'", "data:", "https:", "blob:"],
-                fontSrc: ["'self'", "data:"],
-                connectSrc: ["'self'", "https://api.openai.com"],
-                objectSrc: ["'none'"],
-                mediaSrc: ["'self'"],
-                frameSrc: ["'none'"],
-            },
-        },
-        hsts: {
-            maxAge: 31536000,
-            includeSubDomains: true,
-            preload: true
-        }
-    }));
-} else {
-    // Relaxed security for development - no CSP restrictions
-    app.use(helmet({
-        contentSecurityPolicy: false, // Disable CSP entirely in development
-        crossOriginEmbedderPolicy: false,
-        hsts: false
-    }));
-    console.log('Development mode: CSP disabled for compatibility with inline scripts');
-}
+// Security middleware - COMMENTED OUT FOR DEVELOPMENT
+// if (process.env.NODE_ENV === 'production') {
+//     // Strict security for production
+//     app.use(helmet({
+//         contentSecurityPolicy: {
+//             directives: {
+//                 defaultSrc: ["'self'"],
+//                 styleSrc: ["'self'", "'unsafe-inline'"],
+//                 scriptSrc: ["'self'"],
+//                 imgSrc: ["'self'", "data:", "https:", "blob:"],
+//                 fontSrc: ["'self'", "data:"],
+//                 connectSrc: ["'self'", "https://api.openai.com"],
+//                 objectSrc: ["'none'"],
+//                 mediaSrc: ["'self'"],
+//                 frameSrc: ["'none'"],
+//             },
+//         },
+//         hsts: {
+//             maxAge: 31536000,
+//             includeSubDomains: true,
+//             preload: true
+//         }
+//     }));
+// } else {
+//     // Relaxed security for development - no CSP restrictions
+//     app.use(helmet({
+//         contentSecurityPolicy: false, // Disable CSP entirely in development
+//         crossOriginEmbedderPolicy: false,
+//         hsts: false
+//     }));
+//     console.log('Development mode: CSP disabled for compatibility with inline scripts');
+// }
+console.log('Development mode: All security features disabled for development');
 
-// Rate limiting
-const authLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 5, // 5 attempts per window
-    message: { error: 'Too many login attempts, please try again later' },
-    standardHeaders: true,
-    legacyHeaders: false,
-});
+// Rate limiting - COMMENTED OUT FOR DEVELOPMENT
+// const authLimiter = rateLimit({
+//     windowMs: 15 * 60 * 1000, // 15 minutes
+//     max: 5, // 5 attempts per window
+//     message: { error: 'Too many login attempts, please try again later' },
+//     standardHeaders: true,
+//     legacyHeaders: false,
+// });
 
-const apiLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // 100 requests per window
-    message: { error: 'Too many requests, please try again later' },
-    standardHeaders: true,
-    legacyHeaders: false,
-});
+// const apiLimiter = rateLimit({
+//     windowMs: 15 * 60 * 1000, // 15 minutes
+//     max: 100, // 100 requests per window
+//     message: { error: 'Too many requests, please try again later' },
+//     standardHeaders: true,
+//     legacyHeaders: false,
+// });
 
-// Apply rate limiting
-app.use('/api/auth', authLimiter);
-app.use('/api', apiLimiter);
+// Apply rate limiting - COMMENTED OUT FOR DEVELOPMENT
+// app.use('/api/auth', authLimiter);
+// app.use('/api', apiLimiter);
 
 // Initialize OpenAI
 const openai = new OpenAI({
     apiKey: config.OPENAI_API_KEY
 });
 
-// Secure CORS Configuration
+// Email Configuration
+const emailTransporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: process.env.EMAIL_USER || 'herodotus.ai666@gmail.com',
+        pass: process.env.EMAIL_PASS || 'megq afht wnpv kikb'
+    }
+});
+
+// Verify email connection (handle gracefully)
+emailTransporter.verify((error, success) => {
+    if (error) {
+        console.log('⚠️  Email service not configured properly. Email features may not work.');
+        console.log('   To fix: Set up Gmail App Password or configure different email service.');
+    } else {
+        console.log('📧 Email service ready and authenticated');
+    }
+});
+
+// CORS Configuration - SIMPLIFIED FOR DEVELOPMENT
 const corsOptions = {
-    origin: function (origin, callback) {
-        // Allow requests with no origin (like mobile apps or curl requests)
-        if (!origin) return callback(null, true);
-        
-        const allowedOrigins = [
-            'http://localhost:3000',
-            'http://127.0.0.1:3000',
-            'http://localhost:5500', // Live Server
-            'http://127.0.0.1:5500',
-            'http://localhost:5173', // Vite
-            'http://127.0.0.1:5173',
-            // Add your production domain here when deploying
-        ];
-        
-        // In development mode, allow all localhost/127.0.0.1 origins
-        if (process.env.NODE_ENV !== 'production') {
-            if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
-                return callback(null, true);
-            }
-        }
-        
-        // Check against whitelist
-        if (allowedOrigins.indexOf(origin) !== -1) {
-            callback(null, true);
-        } else {
-            console.log(`CORS blocked origin: ${origin}`);
-            callback(new Error('Not allowed by CORS'));
-        }
-    },
+    origin: true, // Allow all origins for development
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
@@ -122,21 +115,21 @@ app.use(cors(corsOptions));
 // Add this BEFORE other middleware
 app.options('*', cors(corsOptions));
 
-// Additional security middleware
-app.use(express.json({ limit: '10mb' })); // Limit JSON payload size
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+// Additional middleware - SECURITY HEADERS DISABLED FOR DEVELOPMENT
+app.use(express.json({ limit: '50mb' })); // Increased limit for development
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// Security headers
-app.use((req, res, next) => {
-    // Remove server header
-    res.removeHeader('X-Powered-By');
-    // Add custom security headers
-    res.setHeader('X-Content-Type-Options', 'nosniff');
-    res.setHeader('X-Frame-Options', 'DENY');
-    res.setHeader('X-XSS-Protection', '1; mode=block');
-    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-    next();
-});
+// Security headers - COMMENTED OUT FOR DEVELOPMENT
+// app.use((req, res, next) => {
+//     // Remove server header
+//     res.removeHeader('X-Powered-By');
+//     // Add custom security headers
+//     res.setHeader('X-Content-Type-Options', 'nosniff');
+//     res.setHeader('X-Frame-Options', 'DENY');
+//     res.setHeader('X-XSS-Protection', '1; mode=block');
+//     res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+//     next();
+// });
 
 // Static file serving
 app.use(express.static('public'));
@@ -157,9 +150,17 @@ async function initializeDatabase() {
             email TEXT UNIQUE NOT NULL,
             password TEXT NOT NULL,
             google_id TEXT,
+            email_verified BOOLEAN DEFAULT FALSE,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     `);
+
+    // Add email_verified column if it doesn't exist (for existing databases)
+    try {
+        await db.exec(`ALTER TABLE users ADD COLUMN email_verified BOOLEAN DEFAULT FALSE`);
+    } catch (error) {
+        // Column might already exist, ignore error
+    }
 
     // Create writing_styles table
     await db.exec(`
@@ -227,6 +228,36 @@ async function initializeDatabase() {
         );
         CREATE INDEX IF NOT EXISTS idx_metrics_event_type ON metrics(event_type);
         CREATE INDEX IF NOT EXISTS idx_metrics_timestamp ON metrics(timestamp DESC);
+    `);
+
+    // Create password reset tokens table
+    await db.exec(`
+        CREATE TABLE IF NOT EXISTS password_reset_tokens (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            token TEXT NOT NULL UNIQUE,
+            expires_at DATETIME NOT NULL,
+            used BOOLEAN DEFAULT FALSE,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        );
+        CREATE INDEX IF NOT EXISTS idx_password_reset_token ON password_reset_tokens(token);
+        CREATE INDEX IF NOT EXISTS idx_password_reset_expires ON password_reset_tokens(expires_at);
+    `);
+
+    // Create email verification tokens table
+    await db.exec(`
+        CREATE TABLE IF NOT EXISTS email_verification_tokens (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            token TEXT NOT NULL UNIQUE,
+            expires_at DATETIME NOT NULL,
+            used BOOLEAN DEFAULT FALSE,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        );
+        CREATE INDEX IF NOT EXISTS idx_email_verification_token ON email_verification_tokens(token);
+        CREATE INDEX IF NOT EXISTS idx_email_verification_expires ON email_verification_tokens(expires_at);
     `);
 
     console.log('Database initialized successfully with performance indexes');
@@ -352,8 +383,14 @@ async function extractTextFromFile(file) {
             case '.rtf':
                 const rtfData = file.buffer.toString('utf-8');
                 try {
-                    const parsed = rtfParser.parseString(rtfData);
-                    return parsed.content || parsed.text || 'RTF content could not be extracted';
+                    // rtf-parser usage: parse method returns a promise
+                    const parsed = await new Promise((resolve, reject) => {
+                        rtfParser.parseString(rtfData, (err, doc) => {
+                            if (err) reject(err);
+                            else resolve(doc);
+                        });
+                    });
+                    return parsed.content || parsed.text || parsed.toString() || 'RTF content could not be extracted';
                 } catch (rtfError) {
                     console.warn('RTF parsing failed, trying as plain text:', rtfError.message);
                     // Fallback: basic RTF text extraction
@@ -410,6 +447,16 @@ Provide a concise but comprehensive analysis that can be used to replicate this 
         return response.choices[0].message.content;
     } catch (error) {
         console.error('Error analyzing writing style:', error);
+        
+        // Check if it's an API key issue
+        if (error.status === 401 || error.code === 'invalid_api_key') {
+            console.error('🚨 API KEY AUTHENTICATION FAILED during style analysis 🚨');
+            console.error('This is likely due to:');
+            console.error('- API key has expired or been revoked');
+            console.error('- API key usage quota exceeded');
+            console.error('- Invalid API key format');
+        }
+        
         throw error;
     }
 }
@@ -480,6 +527,16 @@ Important: Match the identified writing style exactly, including vocabulary choi
         return response.choices[0].message.content;
     } catch (error) {
         console.error('Error generating styled content:', error);
+        
+        // Check if it's an API key issue
+        if (error.status === 401 || error.code === 'invalid_api_key') {
+            console.error('🚨 API KEY AUTHENTICATION FAILED during content generation 🚨');
+            console.error('This is likely due to:');
+            console.error('- API key has expired or been revoked');
+            console.error('- API key usage quota exceeded');
+            console.error('- Invalid API key format');
+        }
+        
         throw error;
     }
 }
@@ -512,25 +569,77 @@ app.post('/api/auth/register', async (req, res) => {
         // Hash password
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        // Create user
+        // Create user (email_verified defaults to FALSE)
         const result = await db.run(
-            'INSERT INTO users (email, password) VALUES (?, ?)',
-            [email, hashedPassword]
+            'INSERT INTO users (email, password, email_verified) VALUES (?, ?, ?)',
+            [email, hashedPassword, false]
         );
 
-        const user = {
-            id: result.lastID,
-            email: email
+        const userId = result.lastID;
+
+        // Generate email verification token
+        const verificationToken = require('crypto').randomBytes(32).toString('hex');
+        const expiresAt = new Date(Date.now() + 24 * 3600000); // 24 hours from now
+
+        // Store verification token
+        await db.run(
+            'INSERT INTO email_verification_tokens (user_id, token, expires_at) VALUES (?, ?, ?)',
+            [userId, verificationToken, expiresAt.toISOString()]
+        );
+
+        // Send verification email
+        const verificationUrl = `http://localhost:3000/verify-email.html?token=${verificationToken}`;
+        
+        const mailOptions = {
+            from: 'herodotus.ai666@gmail.com',
+            to: email,
+            subject: 'Verify Your Email - Herodotus',
+            html: `
+                <div style="max-width: 600px; margin: 0 auto; font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+                    <h2 style="color: #667eea; text-align: center;">Welcome to Herodotus!</h2>
+                    <p>Thank you for creating an account with Herodotus, your personal AI writing assistant.</p>
+                    <p>To get started, please verify your email address by clicking the button below:</p>
+                    <div style="text-align: center; margin: 30px 0;">
+                        <a href="${verificationUrl}" style="display: inline-block; padding: 15px 30px; background-color: #667eea; color: white; text-decoration: none; border-radius: 8px; font-weight: 500;">Verify Email Address</a>
+                    </div>
+                    <p>Or copy and paste this link in your browser:</p>
+                    <p style="word-break: break-all; color: #667eea;">${verificationUrl}</p>
+                    <p style="margin-top: 30px; font-size: 0.9em; color: #666;">
+                        This verification link will expire in 24 hours. If you didn't create this account, please ignore this email.
+                    </p>
+                    <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
+                    <p style="font-size: 0.8em; color: #999; text-align: center;">
+                        Herodotus - Your Personal AI Writing Assistant<br>
+                        Need help? Contact us at alancai888888@gmail.com
+                    </p>
+                </div>
+            `
         };
 
-        // Create JWT token
-        const token = jwt.sign(user, config.JWT_SECRET || 'default-secret-key', { expiresIn: '7d' });
-
-        res.json({
-            success: true,
-            token,
-            user
-        });
+        try {
+            await emailTransporter.sendMail(mailOptions);
+            console.log(`✅ Verification email sent to: ${email}`);
+            
+            res.json({
+                success: true,
+                message: 'Account created successfully! Please check your email to verify your account before logging in.',
+                email: email
+            });
+        } catch (emailError) {
+            console.error('❌ Failed to send verification email:', emailError);
+            
+            // Log the verification URL to console since email failed
+            const verificationUrl = `http://localhost:3000/verify-email.html?token=${verificationToken}`;
+            console.log('\n=== EMAIL VERIFICATION TOKEN (EMAIL FAILED) ===');
+            console.log(`Verification URL: ${verificationUrl}`);
+            console.log('===============================================\n');
+            
+            res.json({
+                success: true,
+                message: 'Account created successfully! However, there was an issue sending the verification email. Please check the server console for the verification link.',
+                email: email
+            });
+        }
     } catch (error) {
         console.error('Registration error:', error);
         res.status(500).json({ error: 'Registration failed' });
@@ -558,6 +667,14 @@ app.post('/api/auth/login', async (req, res) => {
             return res.status(401).json({ error: 'Invalid credentials' });
         }
 
+        // Check if email is verified
+        if (!user.email_verified) {
+            return res.status(401).json({ 
+                error: 'Please verify your email address before logging in. Check your email for a verification link.',
+                needsVerification: true
+            });
+        }
+
         // Create JWT token
         const tokenPayload = {
             id: user.id,
@@ -579,6 +696,248 @@ app.post('/api/auth/login', async (req, res) => {
 // Verify token endpoint
 app.get('/api/auth/verify', authenticateToken, (req, res) => {
     res.json({ valid: true, user: req.user });
+});
+
+// ===================== PASSWORD RESET ROUTES =====================
+
+// Request password reset
+app.post('/api/auth/forgot-password', async (req, res) => {
+    try {
+        const { email } = req.body;
+        
+        if (!email) {
+            return res.status(400).json({ error: 'Email is required' });
+        }
+
+        if (!validateEmail(email)) {
+            return res.status(400).json({ error: 'Invalid email format' });
+        }
+
+        // Find user by email
+        const user = await db.get('SELECT id, email FROM users WHERE email = ?', [email]);
+        
+        if (!user) {
+            // Don't reveal if email exists or not for security
+            return res.json({ success: true, message: 'If an account with that email exists, we have sent a password reset link.' });
+        }
+
+        // Generate reset token
+        const resetToken = require('crypto').randomBytes(32).toString('hex');
+        const expiresAt = new Date(Date.now() + 3600000); // 1 hour from now
+
+        // Store reset token in database
+        await db.run(
+            'INSERT INTO password_reset_tokens (user_id, token, expires_at) VALUES (?, ?, ?)',
+            [user.id, resetToken, expiresAt.toISOString()]
+        );
+
+        // Send email (for development, just log the token)
+        const resetUrl = `http://localhost:3000/reset-password.html?token=${resetToken}`;
+        
+        try {
+            const mailOptions = {
+                from: 'herodotus.ai666@gmail.com',
+                to: email,
+                subject: 'Password Reset - Herodotus',
+                html: `
+                    <div style="max-width: 600px; margin: 0 auto; font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+                        <h2 style="color: #667eea;">Password Reset Request</h2>
+                        <p>You requested a password reset for your Herodotus account.</p>
+                        <p>Click the button below to reset your password:</p>
+                        <div style="text-align: center; margin: 30px 0;">
+                            <a href="${resetUrl}" style="display: inline-block; padding: 15px 30px; background-color: #667eea; color: white; text-decoration: none; border-radius: 8px; font-weight: 500;">Reset Password</a>
+                        </div>
+                        <p>Or copy and paste this link in your browser:</p>
+                        <p style="word-break: break-all; color: #667eea;">${resetUrl}</p>
+                        <p style="margin-top: 30px; font-size: 0.9em; color: #666;">
+                            This link will expire in 1 hour. If you didn't request this, please ignore this email.
+                        </p>
+                    </div>
+                `
+            };
+
+            await emailTransporter.sendMail(mailOptions);
+            console.log(`📧 Password reset email sent to: ${email}`);
+        } catch (emailError) {
+            console.error('❌ Failed to send password reset email:', emailError);
+            // In development, log the reset URL as fallback
+            console.log('\n=== PASSWORD RESET TOKEN (EMAIL FAILED) ===');
+            console.log(`Reset URL: ${resetUrl}`);
+            console.log('==========================================\n');
+        }
+
+        res.json({ success: true, message: 'If an account with that email exists, we have sent a password reset link.' });
+    } catch (error) {
+        console.error('Password reset error:', error);
+        res.status(500).json({ error: 'Failed to process password reset request' });
+    }
+});
+
+// Reset password with token
+app.post('/api/auth/reset-password', async (req, res) => {
+    try {
+        const { token, password } = req.body;
+        
+        if (!token || !password) {
+            return res.status(400).json({ error: 'Token and password are required' });
+        }
+
+        if (!validatePassword(password)) {
+            return res.status(400).json({ error: 'Password must be at least 6 characters long' });
+        }
+
+        // Find valid reset token
+        const resetRecord = await db.get(`
+            SELECT rt.id, rt.user_id, rt.expires_at, rt.used, u.email 
+            FROM password_reset_tokens rt 
+            JOIN users u ON rt.user_id = u.id 
+            WHERE rt.token = ? AND rt.used = 0
+        `, [token]);
+
+        if (!resetRecord) {
+            return res.status(400).json({ error: 'Invalid or expired reset token' });
+        }
+
+        // Check if token is expired
+        if (new Date() > new Date(resetRecord.expires_at)) {
+            return res.status(400).json({ error: 'Reset token has expired' });
+        }
+
+        // Hash new password
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        // Update user password
+        await db.run('UPDATE users SET password = ? WHERE id = ?', [hashedPassword, resetRecord.user_id]);
+
+        // Mark token as used
+        await db.run('UPDATE password_reset_tokens SET used = 1 WHERE id = ?', [resetRecord.id]);
+
+        // Track metric
+        await trackMetric('password_reset_completed', resetRecord.user_id);
+
+        res.json({ success: true, message: 'Password has been reset successfully' });
+    } catch (error) {
+        console.error('Password reset error:', error);
+        res.status(500).json({ error: 'Failed to reset password' });
+    }
+});
+
+// Email verification endpoint
+app.get('/api/auth/verify-email', async (req, res) => {
+    try {
+        const { token } = req.query;
+        
+        if (!token) {
+            return res.status(400).json({ error: 'Verification token is required' });
+        }
+
+        // Find valid verification token
+        const verificationRecord = await db.get(`
+            SELECT vt.id, vt.user_id, vt.expires_at, vt.used, u.email 
+            FROM email_verification_tokens vt 
+            JOIN users u ON vt.user_id = u.id 
+            WHERE vt.token = ? AND vt.used = 0
+        `, [token]);
+
+        if (!verificationRecord) {
+            return res.status(400).json({ error: 'Invalid or expired verification token' });
+        }
+
+        // Check if token is expired
+        if (new Date() > new Date(verificationRecord.expires_at)) {
+            return res.status(400).json({ error: 'Verification token has expired' });
+        }
+
+        // Mark user as verified
+        await db.run('UPDATE users SET email_verified = 1 WHERE id = ?', [verificationRecord.user_id]);
+
+        // Mark token as used
+        await db.run('UPDATE email_verification_tokens SET used = 1 WHERE id = ?', [verificationRecord.id]);
+
+        // Track metric
+        await trackMetric('email_verified', verificationRecord.user_id);
+
+        res.json({ success: true, message: 'Email verified successfully! You can now log in.' });
+    } catch (error) {
+        console.error('Email verification error:', error);
+        res.status(500).json({ error: 'Failed to verify email' });
+    }
+});
+
+// Resend verification email endpoint
+app.post('/api/auth/resend-verification', async (req, res) => {
+    try {
+        const { email } = req.body;
+        
+        if (!email) {
+            return res.status(400).json({ error: 'Email is required' });
+        }
+
+        // Find user
+        const user = await db.get('SELECT id, email, email_verified FROM users WHERE email = ?', [email]);
+        
+        if (!user) {
+            // Don't reveal if email exists or not for security
+            return res.json({ success: true, message: 'If an account with that email exists and is unverified, we have sent a new verification email.' });
+        }
+
+        if (user.email_verified) {
+            return res.json({ success: true, message: 'Email is already verified. You can log in.' });
+        }
+
+        // Generate new verification token
+        const verificationToken = require('crypto').randomBytes(32).toString('hex');
+        const expiresAt = new Date(Date.now() + 24 * 3600000); // 24 hours from now
+
+        // Store new verification token (and mark old ones as used)
+        await db.run('UPDATE email_verification_tokens SET used = 1 WHERE user_id = ?', [user.id]);
+        await db.run(
+            'INSERT INTO email_verification_tokens (user_id, token, expires_at) VALUES (?, ?, ?)',
+            [user.id, verificationToken, expiresAt.toISOString()]
+        );
+
+        // Send verification email
+        const verificationUrl = `http://localhost:3000/verify-email.html?token=${verificationToken}`;
+        
+        const mailOptions = {
+            from: 'herodotus.ai666@gmail.com',
+            to: email,
+            subject: 'Verify Your Email - Herodotus',
+            html: `
+                <div style="max-width: 600px; margin: 0 auto; font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+                    <h2 style="color: #667eea; text-align: center;">Email Verification - Herodotus</h2>
+                    <p>You requested a new verification email for your Herodotus account.</p>
+                    <p>Please verify your email address by clicking the button below:</p>
+                    <div style="text-align: center; margin: 30px 0;">
+                        <a href="${verificationUrl}" style="display: inline-block; padding: 15px 30px; background-color: #667eea; color: white; text-decoration: none; border-radius: 8px; font-weight: 500;">Verify Email Address</a>
+                    </div>
+                    <p>Or copy and paste this link in your browser:</p>
+                    <p style="word-break: break-all; color: #667eea;">${verificationUrl}</p>
+                    <p style="margin-top: 30px; font-size: 0.9em; color: #666;">
+                        This verification link will expire in 24 hours. If you didn't request this, please ignore this email.
+                    </p>
+                    <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
+                    <p style="font-size: 0.8em; color: #999; text-align: center;">
+                        Herodotus - Your Personal AI Writing Assistant<br>
+                        Need help? Contact us at alancai888888@gmail.com
+                    </p>
+                </div>
+            `
+        };
+
+        try {
+            await emailTransporter.sendMail(mailOptions);
+            console.log(`New verification email sent to: ${email}`);
+        } catch (emailError) {
+            console.error('Failed to send verification email:', emailError);
+            return res.status(500).json({ error: 'Failed to send verification email' });
+        }
+
+        res.json({ success: true, message: 'If an account with that email exists and is unverified, we have sent a new verification email.' });
+    } catch (error) {
+        console.error('Resend verification error:', error);
+        res.status(500).json({ error: 'Failed to resend verification email' });
+    }
 });
 
 // ===================== WRITING STYLE ROUTES =====================
@@ -774,9 +1133,24 @@ app.post('/api/generate', authenticateToken, async (req, res) => {
 
     } catch (error) {
         console.error('Error in content generation:', error);
-        res.status(500).json({
-            error: error.message || 'An error occurred during content generation'
-        });
+        
+        // Check if it's an API key issue
+        if (error.status === 401 || error.code === 'invalid_api_key') {
+            console.error('🚨 API KEY AUTHENTICATION FAILED 🚨');
+            console.error('This is likely due to:');
+            console.error('- API key has expired or been revoked');
+            console.error('- API key usage quota exceeded');
+            console.error('- Invalid API key format');
+            console.error('Please check your OpenAI account and generate a new API key');
+            
+            res.status(500).json({
+                error: 'Content generation failed - API authentication issue. Please contact support.'
+            });
+        } else {
+            res.status(500).json({
+                error: error.message || 'An error occurred during content generation'
+            });
+        }
     }
 });
 
@@ -841,6 +1215,39 @@ app.get('/api/history', authenticateToken, async (req, res) => {
     } catch (error) {
         console.error('Error fetching history:', error);
         res.status(500).json({ error: 'Failed to fetch history' });
+    }
+});
+
+// Style-specific history endpoint to prevent content mixing
+app.get('/api/styles/:id/history', authenticateToken, async (req, res) => {
+    try {
+        const styleId = parseInt(req.params.id);
+        
+        // Verify style belongs to user
+        const style = await db.get(
+            'SELECT id FROM writing_styles WHERE id = ? AND user_id = ?',
+            [styleId, req.user.id]
+        );
+        
+        if (!style) {
+            return res.status(404).json({ error: 'Style not found' });
+        }
+        
+        const history = await db.all(
+            `SELECT gc.*, ws.name as style_name 
+             FROM generated_content gc 
+             LEFT JOIN writing_styles ws ON gc.style_id = ws.id 
+             WHERE gc.style_id = ? AND gc.user_id = ? 
+             ORDER BY gc.created_at DESC 
+             LIMIT 50`,
+            [styleId, req.user.id]
+        );
+        
+        console.log(`📊 Style ${styleId} history: ${history.length} items`);
+        res.json(history);
+    } catch (error) {
+        console.error('Error fetching style history:', error);
+        res.status(500).json({ error: 'Failed to fetch style history' });
     }
 });
 
@@ -1007,6 +1414,40 @@ app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', message: 'Server is running' });
 });
 
+// API key validation endpoint
+app.get('/api/validate-key', async (req, res) => {
+    try {
+        // Simple test with minimal tokens to check API key validity
+        const response = await openai.chat.completions.create({
+            model: 'gpt-4o-mini',
+            messages: [{ role: 'user', content: 'Test' }],
+            max_tokens: 5
+        });
+        
+        res.json({
+            status: 'valid',
+            message: 'API key is working',
+            model: 'gpt-4o-mini'
+        });
+    } catch (error) {
+        console.error('API key validation failed:', error);
+        
+        if (error.status === 401 || error.code === 'invalid_api_key') {
+            res.status(401).json({
+                status: 'invalid',
+                message: 'API key is invalid or expired',
+                error: error.message
+            });
+        } else {
+            res.status(500).json({
+                status: 'error',
+                message: 'Unable to validate API key',
+                error: error.message
+            });
+        }
+    }
+});
+
 // Developer metrics endpoint
 app.get('/api/metrics', async (req, res) => {
     try {
@@ -1080,11 +1521,6 @@ app.get('/', (req, res) => {
 // Serve dashboard page
 app.get('/dashboard', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
-});
-
-// Health check endpoint
-app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok', message: 'Server is running', cors: 'enabled' });
 });
 
 // Start server
